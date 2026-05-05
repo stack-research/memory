@@ -33,10 +33,12 @@ A memory record is richer than content: claim, source, assertion/event time, con
 
 ## Stack (target)
 
-- **Postgres** — event log + relational state
-- **pgvector** — embedding index
-- **Redis** (optional) — working set / scoring
+- **S3 objects** — append-only event lineage, materialized memory state, snapshots, manifests
+- **S3 Vectors** — similarity search with retrieval-side metadata filters
+- **DynamoDB** (optional) — add only if point lookup or query pain appears
 - **Python** — API + background workers
+
+Storage invariant: S3 event objects are the source of truth. Memory-state objects and vector records are rebuildable caches.
 
 ## Experiments
 
@@ -68,9 +70,9 @@ Distributed scale, real-time throughput as a primary concern, perfect truth infe
 
 ## Docs in this repo
 
-- [`AMENDED_NOTES.md`](AMENDED_NOTES.md) — conceptual model, lifecycle, poisoning, biological parallels
-- [`BROAD_EXPERIMENT_SPEC.md`](BROAD_EXPERIMENT_SPEC.md) — lab scope, modules, acceptance framing
-- [`ENGINEERING_SPEC.md`](ENGINEERING_SPEC.md) — schemas, components, audit endpoints, metrics
+- [`notes/AMENDED_NOTES.md`](notes/AMENDED_NOTES.md) — conceptual model, lifecycle, poisoning, biological parallels
+- [`specs/BROAD_EXPERIMENT_SPEC.md`](specs/BROAD_EXPERIMENT_SPEC.md) — lab scope, modules, acceptance framing
+- [`specs/ENGINEERING_SPEC.md`](specs/ENGINEERING_SPEC.md) — S3-first backend, components, audit endpoints, metrics
 
 ## Guiding principle
 

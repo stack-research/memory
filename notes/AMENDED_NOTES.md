@@ -155,10 +155,19 @@ Avoid:
 
 ## System Architecture (Minimal)
 
-- Postgres (event log + state)
-- pgvector (embedding index)
-- Redis (working set / scoring)
+- S3 event objects for immutable lineage
+- S3 memory-state objects for current materialized state
+- S3 Vectors for similarity search and retrieval-side metadata filters
+- S3 object keys, metadata, and tags for coarse routing only
+- DynamoDB only if point lookup or query pain appears
 - background worker (sleep + decay + promotion)
+
+Backend rule:
+
+- event objects are the source of truth
+- memory-state objects are rebuildable
+- vector records are influence indexes, not truth
+- snapshots and manifests exist to make replay auditable
 
 ---
 

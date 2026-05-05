@@ -22,13 +22,23 @@ Two-plane system:
 ## Core Components
 
 ### 1. Event Log (Append-Only)
-Storage: Postgres
+Storage: S3 objects
 
-Schema (simplified):
-- id (uuid)
+Key shape:
+```
+s3://agent-memory/events/
+  dt=YYYY-MM-DD/
+    agent={agent_id}/
+      stream={stream_id}/
+        {sequence}.{event_type}.json
+```
+
+Event body (simplified):
+- event_id
+- sequence
 - event_type (observed | recalled | mutated | promoted | quarantined | deleted)
 - memory_id
-- payload (jsonb)
+- payload
 - source
 - timestamp
 
@@ -36,15 +46,23 @@ Guarantees:
 - append-only
 - no updates
 - tombstones for deletion
+- prefix-order replay within a stream
 
 ---
 
 ### 2. Memory State Store
-Storage: Postgres + pgvector
+Storage: S3 memory-state objects + S3 Vectors
 
-Schema:
+Object shape:
+```
+s3://agent-memory/memories/
+  active/memory_id={memory_id}/state.json
+  quarantined/memory_id={memory_id}/state.json
+  deleted/memory_id={memory_id}/tombstone.json
+```
+
+State body:
 - memory_id
-- embedding
 - claim
 - trust_score
 - confidence
@@ -52,6 +70,31 @@ Schema:
 - last_recalled
 - access_count
 - status (active | quarantined | deleted)
+- conflict links
+- lineage pointers
+
+Vector index:
+```
+vector_bucket: agent-memory-vectors
+index: memories-v1
+```
+
+Vector metadata:
+- memory_id
+- claim_hash
+- agent_id
+- status
+- kind
+- source_trust
+- confidence
+- decay_score
+- last_recalled_ts
+- assertion_ts
+- has_conflicts
+
+S3 event objects are the source of truth. S3 memory-state objects and S3 Vectors records are rebuildable materializations.
+
+Use S3 object metadata only for small routing fields. Put real state in JSON bodies. Object keys are the coarse index; S3 Vectors metadata filters are the retrieval-side filter.
 
 ---
 
@@ -74,9 +117,10 @@ Output:
 
 Steps:
 1. embed query
-2. retrieve top-k via vector index
+2. retrieve top-k via S3 Vectors
 3. apply eligibility filter
-4. return filtered set
+4. load needed memory-state objects from S3
+5. return filtered set
 
 ---
 
@@ -126,11 +170,15 @@ Promotion:
 Runs periodically.
 
 Tasks:
+- scan event prefixes
 - replay high-value memories
 - dedupe similar embeddings
 - compress into summaries
 - promote stable patterns
 - quarantine conflicting clusters
+- rewrite materialized memory-state objects
+- upsert vectors
+- write snapshots and manifests
 
 ---
 
@@ -165,9 +213,10 @@ Must answer:
 
 ## Infrastructure
 
-- Postgres (core DB)
-- pgvector (embedding search)
-- Redis (optional cache / scoring)
+- S3 bucket for append-only event lineage
+- S3 bucket/prefixes for materialized memory state, claims, snapshots, and manifests
+- S3 Vectors for similarity search with metadata filters
+- DynamoDB only if point lookup/query pain appears
 - Python service (API + workers)
 
 ---

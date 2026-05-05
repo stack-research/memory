@@ -506,7 +506,7 @@ That is essentially:
 
 ⸻
 
-The next step is to design a concrete memory control plane (Postgres / vector DB / Redis) that actually implements these biological constraints instead of just storing embeddings.
+The next step is to design a concrete memory control plane (S3 event lineage / S3 memory state / S3 Vectors) that actually implements these biological constraints instead of just storing embeddings.
 
 ---
 
@@ -970,9 +970,9 @@ What you learn
 
 Keep it tight:
 
-* Postgres (events, lineage)
-* pgvector (embedding index)
-* Redis (working set / scores)
+* S3 event objects (events, lineage)
+* S3 memory-state objects (current materialized state)
+* S3 Vectors (embedding index + metadata filters)
 * background worker (decay, promotion, quarantine)
 
 No more than that.
