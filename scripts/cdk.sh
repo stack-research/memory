@@ -7,7 +7,7 @@ PROFILE="${AWS_PROFILE:-stack-research}"
 
 cmd="${1:-}"
 if [[ -z "$cmd" ]]; then
-  echo "Usage: scripts/cdk.sh {bootstrap|synth|deploy|destroy}"
+  echo "Usage: scripts/cdk.sh {bootstrap|synth|deploy|destroy|preflight}"
   exit 1
 fi
 
@@ -20,6 +20,10 @@ source .venv/bin/activate
 pip install -r requirements.txt >/dev/null
 
 case "$cmd" in
+  preflight)
+    "$ROOT_DIR/.venv/bin/python" -m pytest -q
+    AWS_PROFILE="$PROFILE" cdk synth
+    ;;
   bootstrap)
     AWS_PROFILE="$PROFILE" cdk bootstrap
     ;;
@@ -27,6 +31,17 @@ case "$cmd" in
     AWS_PROFILE="$PROFILE" cdk synth
     ;;
   deploy)
+    required_vars=(AWS_REGION AWS_EVENTS_BUCKET_NAME AWS_STATE_BUCKET_NAME AWS_ANALYTICS_BUCKET_NAME AWS_VECTOR_BUCKET_NAME AWS_VECTOR_INDEX_NAME)
+    missing=()
+    for var in "${required_vars[@]}"; do
+      if [[ -z "${!var:-}" ]]; then
+        missing+=("$var")
+      fi
+    done
+    if (( ${#missing[@]} > 0 )); then
+      echo "Missing required environment vars for deploy: ${missing[*]}"
+      exit 1
+    fi
     AWS_PROFILE="$PROFILE" cdk deploy --all
     ;;
   destroy)

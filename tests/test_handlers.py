@@ -8,6 +8,7 @@ from memory_lab.handlers.sleep_handler import handler as sleep_handler
 
 def test_api_handler_ingest_and_retrieve(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("MEMORY_ROOT", str(tmp_path / "lab"))
+    monkeypatch.setenv("STORAGE_MODE", "local")
     ingest_event = {
         "httpMethod": "POST",
         "path": "/v1/events",
@@ -37,5 +38,6 @@ def test_api_handler_ingest_and_retrieve(tmp_path, monkeypatch) -> None:
 
 def test_sleep_handler_runs(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("MEMORY_ROOT", str(tmp_path / "lab"))
+    monkeypatch.setenv("STORAGE_MODE", "local")
     result = sleep_handler({}, None)
     assert result["ok"] is True

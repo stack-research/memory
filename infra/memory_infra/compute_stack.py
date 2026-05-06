@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from aws_cdk import Duration, Stack, aws_apigateway as apigw
+from aws_cdk import CfnOutput, Duration, Stack, aws_apigateway as apigw
 from aws_cdk import aws_events as events
 from aws_cdk import aws_events_targets as targets
 from aws_cdk import aws_glue as glue
@@ -41,6 +41,7 @@ class MemoryComputeStack(Stack):
             "AWS_VECTOR_BUCKET_NAME": vector_bucket.bucket_name,
             "AWS_VECTOR_INDEX_NAME": cfg.vector_index_name,
             "MEMORY_ROOT": "/tmp/memory-lab",
+            "STORAGE_MODE": "aws",
             "PYTHONPATH": "/var/task/src",
         }
 
@@ -138,3 +139,8 @@ class MemoryComputeStack(Stack):
             schedule=events.Schedule.rate(Duration.minutes(15)),
         )
         rule.add_target(targets.LambdaFunction(self.sleep_lambda))
+
+        CfnOutput(self, "MemoryApiUrl", value=api.url)
+        CfnOutput(self, "MemoryApiLambdaName", value=self.api_lambda.function_name)
+        CfnOutput(self, "MemorySleepLambdaName", value=self.sleep_lambda.function_name)
+        CfnOutput(self, "SleepScheduleRuleName", value=rule.rule_name)

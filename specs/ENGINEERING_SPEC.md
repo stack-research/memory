@@ -77,7 +77,7 @@ State body:
 
 Vector index:
 ```
-vector_bucket: experimental-memory-lab
+vector_bucket: experimental-memory
 index: memories-v1
 ```
 
