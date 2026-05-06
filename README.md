@@ -68,6 +68,18 @@ Concrete checks (v0):
 - [`notes/AMENDED_NOTES.md`](notes/AMENDED_NOTES.md) — conceptual model, lifecycle, poisoning, biological parallels
 - [`specs/BROAD_EXPERIMENT_SPEC.md`](specs/BROAD_EXPERIMENT_SPEC.md) — lab scope, modules, acceptance framing
 - [`specs/ENGINEERING_SPEC.md`](specs/ENGINEERING_SPEC.md) — S3 backend, components, audit endpoints, metrics
+- [`src/experiments/README.md`](src/experiments/README.md) — runnable experiment index and instructions
+- [`src/ingestion/athena_ingestion.py`](src/ingestion/athena_ingestion.py) — Athena SQL ingestion from S3 ingress into canonical lineage tables
+
+## Current ingestion note (v0 lab)
+
+For fast iteration, lineage writes currently flow as:
+
+1. engine emits append-only JSON events to S3 ingress
+2. Athena job triages raw vs quarantine
+3. Athena writes validated rows to a canonical query table (`memory_lab.lineage_events_canonical` by default)
+
+This keeps the lineage envelope stable while we iterate on tighter S3 Tables canonical write integration.
 
 ## Guiding principle
 
