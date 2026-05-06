@@ -1,4 +1,4 @@
-# Agentic Memory – Engineering Spec (v0)
+# Engineering Spec (v0)
 
 ## Goal
 Build a minimal experimental memory system to test:
