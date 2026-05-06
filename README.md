@@ -106,7 +106,6 @@ The project supports `.env`-based configuration for AWS/runtime settings.
    - `AWS_EVENTS_BUCKET_NAME`
    - `AWS_STATE_BUCKET_NAME`
    - `AWS_ANALYTICS_BUCKET_NAME`
-   - `MEMORY_ROOT`
 
 `.env` values are loaded at startup and act as defaults; existing shell environment variables still win unless explicitly overridden.
 

@@ -14,10 +14,10 @@ fi
 cd "$INFRA_DIR"
 
 if [[ ! -d ".venv" ]]; then
-  python3 -m venv .venv
+  uv venv .venv
 fi
 source .venv/bin/activate
-pip install -r requirements.txt >/dev/null
+uv pip install -r requirements.txt >/dev/null
 
 case "$cmd" in
   preflight)

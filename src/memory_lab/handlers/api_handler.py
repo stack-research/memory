@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
-from memory_lab.audit import AuditAPI
 from memory_lab.cloud_service import S3MemoryLabService
 from memory_lab.config import Settings, load_dotenv
-from memory_lab.service import MemoryLabService
 
 
 def _json_response(status_code: int, payload: dict[str, Any]) -> dict[str, Any]:
@@ -30,21 +27,14 @@ def _parse_body(event: dict[str, Any]) -> dict[str, Any]:
 def handler(event: dict[str, Any], _context: Any) -> dict[str, Any]:
     load_dotenv()
     settings = Settings.from_env()
-    root = Path(settings.memory_root)
-    root.mkdir(parents=True, exist_ok=True)
-
-    if settings.storage_mode == "local":
-        service: Any = MemoryLabService(root, settings=settings)
-        audit: Any = AuditAPI(root)
-    else:
-        service = S3MemoryLabService(
-            events_bucket=settings.aws_events_bucket_name,
-            state_bucket=settings.aws_state_bucket_name,
-            vector_bucket=settings.aws_vector_bucket_name,
-            vector_index_name=settings.aws_vector_index_name,
-            region=settings.aws_region,
-        )
-        audit = service
+    service = S3MemoryLabService(
+        events_bucket=settings.aws_events_bucket_name,
+        state_bucket=settings.aws_state_bucket_name,
+        vector_bucket=settings.aws_vector_bucket_name,
+        vector_index_name=settings.aws_vector_index_name,
+        region=settings.aws_region,
+    )
+    audit = service
 
     method = event.get("httpMethod") or event.get("requestContext", {}).get("http", {}).get("method")
     path = event.get("path") or event.get("rawPath", "")

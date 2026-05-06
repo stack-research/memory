@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 from __future__ import annotations
 
 import aws_cdk as cdk
@@ -21,7 +21,7 @@ MemoryComputeStack(
     events_bucket=data_stack.events_bucket,
     state_bucket=data_stack.state_bucket,
     analytics_bucket=data_stack.analytics_bucket,
-    vector_bucket=data_stack.vector_bucket,
+    vector_bucket_name=cfg.vector_bucket_name,
 )
 
 app.synth()

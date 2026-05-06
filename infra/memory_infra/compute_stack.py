@@ -25,7 +25,7 @@ class MemoryComputeStack(Stack):
         events_bucket: s3.IBucket,
         state_bucket: s3.IBucket,
         analytics_bucket: s3.IBucket,
-        vector_bucket: s3.IBucket,
+        vector_bucket_name: str,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -38,10 +38,8 @@ class MemoryComputeStack(Stack):
             "AWS_EVENTS_BUCKET_NAME": events_bucket.bucket_name,
             "AWS_STATE_BUCKET_NAME": state_bucket.bucket_name,
             "AWS_ANALYTICS_BUCKET_NAME": analytics_bucket.bucket_name,
-            "AWS_VECTOR_BUCKET_NAME": vector_bucket.bucket_name,
+            "AWS_VECTOR_BUCKET_NAME": vector_bucket_name,
             "AWS_VECTOR_INDEX_NAME": cfg.vector_index_name,
-            "MEMORY_ROOT": "/tmp/memory-lab",
-            "STORAGE_MODE": "aws",
             "PYTHONPATH": "/var/task/src",
         }
 
@@ -79,12 +77,9 @@ class MemoryComputeStack(Stack):
 
         events_bucket.grant_read_write(self.api_lambda)
         state_bucket.grant_read_write(self.api_lambda)
-        vector_bucket.grant_read_write(self.api_lambda)
-
         events_bucket.grant_read_write(self.sleep_lambda)
         state_bucket.grant_read_write(self.sleep_lambda)
         analytics_bucket.grant_read_write(self.sleep_lambda)
-        vector_bucket.grant_read_write(self.sleep_lambda)
 
         glue_db = glue.CfnDatabase(
             self,
@@ -109,13 +104,27 @@ class MemoryComputeStack(Stack):
 
         self.api_lambda.add_to_role_policy(
             iam.PolicyStatement(
-                actions=["glue:GetDatabase", "glue:GetTable", "athena:StartQueryExecution"],
+                actions=[
+                    "glue:GetDatabase",
+                    "glue:GetTable",
+                    "athena:StartQueryExecution",
+                    "s3vectors:PutVectors",
+                    "s3vectors:QueryVectors",
+                    "s3vectors:GetVectors",
+                ],
                 resources=["*"],
             )
         )
         self.sleep_lambda.add_to_role_policy(
             iam.PolicyStatement(
-                actions=["glue:GetDatabase", "glue:GetTable", "athena:StartQueryExecution"],
+                actions=[
+                    "glue:GetDatabase",
+                    "glue:GetTable",
+                    "athena:StartQueryExecution",
+                    "s3vectors:PutVectors",
+                    "s3vectors:QueryVectors",
+                    "s3vectors:GetVectors",
+                ],
                 resources=["*"],
             )
         )

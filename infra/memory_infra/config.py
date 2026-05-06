@@ -18,10 +18,10 @@ class InfraConfig:
     def from_env(cls) -> "InfraConfig":
         return cls(
             aws_profile=os.getenv("AWS_PROFILE", "stack-research"),
-            aws_region=os.getenv("AWS_REGION", "us-east-1"),
-            events_bucket_name=os.getenv("AWS_EVENTS_BUCKET_NAME", "memory-events"),
-            state_bucket_name=os.getenv("AWS_STATE_BUCKET_NAME", "memory-state"),
-            analytics_bucket_name=os.getenv("AWS_ANALYTICS_BUCKET_NAME", "memory-analytics"),
-            vector_bucket_name=os.getenv("AWS_VECTOR_BUCKET_NAME", "experimental-memory-lab"),
+            aws_region=os.getenv("AWS_REGION", "us-east-2"),
+            events_bucket_name=os.getenv("AWS_EVENTS_BUCKET_NAME", "experimental-memory-events"),
+            state_bucket_name=os.getenv("AWS_STATE_BUCKET_NAME", "experimental-memory-state"),
+            analytics_bucket_name=os.getenv("AWS_ANALYTICS_BUCKET_NAME", "experimental-memory-analytics"),
+            vector_bucket_name=os.getenv("AWS_VECTOR_BUCKET_NAME", "experimental-memory"),
             vector_index_name=os.getenv("AWS_VECTOR_INDEX_NAME", "memories-v1"),
         )

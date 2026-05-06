@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from aws_cdk import (
+    CfnResource,
     CfnOutput,
     RemovalPolicy,
     Stack,
@@ -19,7 +20,8 @@ class DataStackOutputs:
     events_bucket: s3.Bucket
     state_bucket: s3.Bucket
     analytics_bucket: s3.Bucket
-    vector_bucket: s3.Bucket
+    vector_bucket_name: str
+    vector_index_name: str
 
 
 class MemoryDataStack(Stack):
@@ -30,18 +32,37 @@ class MemoryDataStack(Stack):
         self.events_bucket = self._secure_bucket("EventsBucket", cfg.events_bucket_name)
         self.state_bucket = self._secure_bucket("StateBucket", cfg.state_bucket_name)
         self.analytics_bucket = self._secure_bucket("AnalyticsBucket", cfg.analytics_bucket_name)
-        self.vector_bucket = self._secure_bucket("VectorBucket", cfg.vector_bucket_name)
+        self.vector_bucket = CfnResource(
+            self,
+            "VectorBucket",
+            type="AWS::S3Vectors::VectorBucket",
+            properties={"VectorBucketName": cfg.vector_bucket_name},
+        )
+        self.vector_index = CfnResource(
+            self,
+            "VectorIndex",
+            type="AWS::S3Vectors::Index",
+            properties={
+                "VectorBucketName": cfg.vector_bucket_name,
+                "IndexName": cfg.vector_index_name,
+                "DataType": "float32",
+                "Dimension": 16,
+                "DistanceMetric": "cosine",
+                "MetadataConfiguration": {"NonFilterableMetadataKeys": []},
+            },
+        )
+        self.vector_index.add_dependency(self.vector_bucket)
 
         self._put_param("/memory/events_bucket_name", self.events_bucket.bucket_name)
         self._put_param("/memory/state_bucket_name", self.state_bucket.bucket_name)
         self._put_param("/memory/analytics_bucket_name", self.analytics_bucket.bucket_name)
-        self._put_param("/memory/vector_bucket_name", self.vector_bucket.bucket_name)
+        self._put_param("/memory/vector_bucket_name", cfg.vector_bucket_name)
         self._put_param("/memory/vector_index_name", cfg.vector_index_name)
 
         CfnOutput(self, "EventsBucketName", value=self.events_bucket.bucket_name)
         CfnOutput(self, "StateBucketName", value=self.state_bucket.bucket_name)
         CfnOutput(self, "AnalyticsBucketName", value=self.analytics_bucket.bucket_name)
-        CfnOutput(self, "VectorBucketName", value=self.vector_bucket.bucket_name)
+        CfnOutput(self, "VectorBucketName", value=cfg.vector_bucket_name)
         CfnOutput(self, "VectorIndexName", value=cfg.vector_index_name)
 
     def _secure_bucket(self, sid: str, bucket_name: str) -> s3.Bucket:

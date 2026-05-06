@@ -12,9 +12,9 @@ This folder contains Python CDK stacks for memory backend infrastructure.
 
 ```bash
 cd infra
-python3 -m venv .venv
+uv venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 ## Deploy

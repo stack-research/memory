@@ -63,7 +63,6 @@ def test_dotenv_settings(tmp_path: Path, monkeypatch) -> None:
                 "AWS_PROFILE=stack-research",
                 "AWS_VECTOR_BUCKET_NAME=test-vectors",
                 "AWS_VECTOR_INDEX_NAME=test-index",
-                "MEMORY_ROOT=var/custom-lab",
             ]
         ),
         encoding="utf-8",
@@ -75,7 +74,6 @@ def test_dotenv_settings(tmp_path: Path, monkeypatch) -> None:
     assert settings.aws_profile == "stack-research"
     assert settings.aws_vector_bucket_name == "test-vectors"
     assert settings.aws_vector_index_name == "test-index"
-    assert settings.memory_root == "var/custom-lab"
 
 
 def test_append_only_and_idempotency(tmp_path: Path) -> None:

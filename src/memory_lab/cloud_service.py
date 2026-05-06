@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from .contracts import Event, MemoryState, utc_now_iso
+from .embeddings import embed_text
 from .reducer import reduce_events
 from .retrieval import eligibility_score
 
@@ -30,15 +30,13 @@ class S3MemoryLabService:
         import boto3
 
         self.s3 = boto3.client("s3", region_name=region)
+        self.s3vectors = boto3.client("s3vectors", region_name=region)
 
     def _event_key(self, memory_id: str, sequence: int, event_id: str) -> str:
         return f"events/raw/{memory_id}/{sequence:020d}-{event_id}.json"
 
     def _state_key(self, status: str, memory_id: str) -> str:
         return f"state/{status}/{memory_id}.json"
-
-    def _vector_key(self) -> str:
-        return f"vectors/{self.vector_index_name}.json"
 
     def ingest_event(
         self,
@@ -90,37 +88,56 @@ class S3MemoryLabService:
                 ContentType="application/json",
             )
 
-        # Store vector metadata document in S3 as retrieval-plane materialization.
         vector_rows = []
         for mem in states.values():
+            metadata = {
+                "memory_id": mem.memory_id,
+                "status": mem.status,
+                "source_event_id": mem.source_event_id or "",
+                "source_payload_hash": mem.source_payload_hash or "",
+                "source_trust": mem.trust_score,
+                "confidence": mem.confidence,
+                "decay_score": mem.decay_score,
+                "has_conflicts": bool(mem.conflicts),
+            }
             vector_rows.append(
                 {
-                    "memory_id": mem.memory_id,
-                    "status": mem.status,
-                    "source_event_id": mem.source_event_id,
-                    "source_payload_hash": mem.source_payload_hash,
-                    "source_trust": mem.trust_score,
-                    "confidence": mem.confidence,
-                    "decay_score": mem.decay_score,
-                    "has_conflicts": bool(mem.conflicts),
-                    "claim": mem.claim,
+                    "key": mem.memory_id,
+                    "data": {"float32": embed_text(mem.claim)},
+                    "metadata": metadata,
                 }
             )
-        self.s3.put_object(
-            Bucket=self.vector_bucket,
-            Key=self._vector_key(),
-            Body=json.dumps({"records": vector_rows}, sort_keys=True).encode("utf-8"),
-            ContentType="application/json",
-        )
+        if vector_rows:
+            self.s3vectors.put_vectors(
+                vectorBucketName=self.vector_bucket,
+                indexName=self.vector_index_name,
+                vectors=vector_rows,
+            )
 
     def retrieve(self, *, query: str, top_k: int = 10) -> list[tuple[str, float]]:
-        del query  # scoring currently uses metadata-only signals
+        query_vector = embed_text(query)
+        vector_response = self.s3vectors.query_vectors(
+            vectorBucketName=self.vector_bucket,
+            indexName=self.vector_index_name,
+            queryVector={"float32": query_vector},
+            topK=top_k,
+            returnDistance=True,
+            returnMetadata=True,
+        )
         states = self.beliefs_current_raw()
         ranked = []
-        for state in states.values():
+        for item in vector_response.get("vectors", []):
+            memory_id = item.get("key")
+            if not memory_id:
+                continue
+            state = states.get(memory_id)
+            if state is None:
+                continue
             if state.status in {"quarantined", "deleted"}:
                 continue
-            score = eligibility_score(1.0, state)
+            distance = float(item.get("distance", 1.0))
+            relevance = max(0.0, 1.0 - distance)
+            score = eligibility_score(relevance, state)
             if score > 0:
                 ranked.append((state.memory_id, score))
         ranked.sort(key=lambda x: x[1], reverse=True)

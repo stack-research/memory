@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from memory_lab.audit import AuditAPI
-from memory_lab.config import Settings, load_dotenv
+from memory_lab.config import load_dotenv
 from memory_lab.service import MemoryLabService
 
 
@@ -76,10 +76,9 @@ def run_e7(service: MemoryLabService) -> dict:
 
 def main() -> None:
     load_dotenv()
-    settings = Settings.from_env()
-    root = Path(settings.memory_root)
+    root = Path("var/lab")
     reset_lab(root)
-    service = MemoryLabService(root, settings=settings)
+    service = MemoryLabService(root)
     results = {
         "E1": run_e1(service),
         "E4": run_e4(service),

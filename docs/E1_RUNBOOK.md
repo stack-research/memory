@@ -25,9 +25,9 @@ This runbook executes E1 (Trust vs Truth) against live deployed stacks.
 4. Smoke:
    - `scripts/infra_smoke.sh`
 5. Run E1 live:
-   - `MEMORY_API_BASE_URL=<api-url> python3 scripts/run_e1_live.py`
+   - `MEMORY_API_BASE_URL=<api-url> uv run python scripts/run_e1_live.py`
 6. Evaluate pass/fail:
-   - `MEMORY_API_BASE_URL=<api-url> python3 scripts/test_e1_live.py`
+   - `MEMORY_API_BASE_URL=<api-url> uv run python scripts/test_e1_live.py`
 7. Optional teardown:
    - `AWS_PROFILE=stack-research scripts/cdk.sh destroy`
 
@@ -35,5 +35,5 @@ This runbook executes E1 (Trust vs Truth) against live deployed stacks.
 
 - `Missing required environment vars for deploy`: export required env vars before `scripts/cdk.sh deploy`.
 - `sam: command not found`: install AWS SAM CLI locally.
-- `lineage empty`: confirm `STORAGE_MODE=aws` in lambda env and check bucket write permissions.
+- `lineage empty`: confirm Lambda has S3 and S3 Vectors permissions and check bucket/vector index names.
 - `retrieve results empty`: verify ingestion completed and API URL targets current deployed stage.

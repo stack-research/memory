@@ -37,8 +37,6 @@ class Settings:
     aws_events_bucket_name: str
     aws_state_bucket_name: str
     aws_analytics_bucket_name: str
-    memory_root: str
-    storage_mode: str
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -50,6 +48,4 @@ class Settings:
             aws_events_bucket_name=os.getenv("AWS_EVENTS_BUCKET_NAME", "experimental-memory-events"),
             aws_state_bucket_name=os.getenv("AWS_STATE_BUCKET_NAME", "experimental-memory-state"),
             aws_analytics_bucket_name=os.getenv("AWS_ANALYTICS_BUCKET_NAME", "experimental-memory-analytics"),
-            memory_root=os.getenv("MEMORY_ROOT", "var/lab"),
-            storage_mode=os.getenv("STORAGE_MODE", "aws"),
         )
