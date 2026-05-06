@@ -44,12 +44,12 @@ class Settings:
     def from_env(cls) -> "Settings":
         return cls(
             aws_profile=os.getenv("AWS_PROFILE", "stack-research"),
-            aws_region=os.getenv("AWS_REGION", "us-east-1"),
-            aws_vector_bucket_name=os.getenv("AWS_VECTOR_BUCKET_NAME", "experimental-memory-lab"),
+            aws_region=os.getenv("AWS_REGION", "us-east-2"),
+            aws_vector_bucket_name=os.getenv("AWS_VECTOR_BUCKET_NAME", "experimental-memory"),
             aws_vector_index_name=os.getenv("AWS_VECTOR_INDEX_NAME", "memories-v1"),
-            aws_events_bucket_name=os.getenv("AWS_EVENTS_BUCKET_NAME", "memory-events"),
-            aws_state_bucket_name=os.getenv("AWS_STATE_BUCKET_NAME", "memory-state"),
-            aws_analytics_bucket_name=os.getenv("AWS_ANALYTICS_BUCKET_NAME", "memory-analytics"),
+            aws_events_bucket_name=os.getenv("AWS_EVENTS_BUCKET_NAME", "experimental-memory-events"),
+            aws_state_bucket_name=os.getenv("AWS_STATE_BUCKET_NAME", "experimental-memory-state"),
+            aws_analytics_bucket_name=os.getenv("AWS_ANALYTICS_BUCKET_NAME", "experimental-memory-analytics"),
             memory_root=os.getenv("MEMORY_ROOT", "var/lab"),
             storage_mode=os.getenv("STORAGE_MODE", "aws"),
         )
