@@ -91,6 +91,22 @@ Distributed scale, real-time throughput as a primary concern, perfect truth infe
 - [`specs/BROAD_EXPERIMENT_SPEC.md`](specs/BROAD_EXPERIMENT_SPEC.md) — lab scope, modules, acceptance framing
 - [`specs/ENGINEERING_SPEC.md`](specs/ENGINEERING_SPEC.md) — S3-first backend, components, audit endpoints, metrics
 
+## Environment configuration
+
+The project supports `.env`-based configuration for AWS/runtime settings.
+
+1. Copy `.env.example` to `.env`
+2. Set values such as:
+   - `AWS_PROFILE`
+   - `AWS_VECTOR_BUCKET_NAME`
+   - `AWS_VECTOR_INDEX_NAME`
+   - `AWS_EVENTS_BUCKET_NAME`
+   - `AWS_STATE_BUCKET_NAME`
+   - `AWS_ANALYTICS_BUCKET_NAME`
+   - `MEMORY_ROOT`
+
+`.env` values are loaded at startup and act as defaults; existing shell environment variables still win unless explicitly overridden.
+
 ## Guiding principle
 
 Use biological ideas for **adaptive** behavior; use machines for **auditability**. Do not conflate the two.

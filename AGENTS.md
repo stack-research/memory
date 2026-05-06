@@ -52,4 +52,6 @@ Hard rule:
 - Keep namespace examples suggestive until namespace sprint; avoid locking key grammar early.
 - Prefer simple, auditable flows over premature optimization.
 - Design for replay, traceability, and rebuildability first.
-
+- AWS CLI/CDK/SDK interaction should use the aws profile `stack-research`.
+- The AWS CDK should be used for infrastructure as a service.
+- Amazon Bedrock for LLMs and embeddings
