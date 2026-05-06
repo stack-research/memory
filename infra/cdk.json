@@ -1,6 +1,0 @@
-{
-  "app": "uv run --with-requirements requirements.txt python app.py",
-  "context": {
-    "@aws-cdk/core:newStyleStackSynthesis": true
-  }
-}

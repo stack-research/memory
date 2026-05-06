@@ -1,12 +1,17 @@
-# Engineering Spec (v0)
+# Engineering Spec (v0.1 S3-Native)
 
 ## Goal
+
 Build a minimal experimental memory system to test:
+
 - belief formation vs retrieval
 - trust-aware memory
 - time-aware decay and promotion
 - poisoning resistance
 - auditability via lineage
+- replayable memory state from immutable history
+
+This is a memory lab, not a production platform.
 
 ---
 
@@ -15,78 +20,149 @@ Build a minimal experimental memory system to test:
 Two-plane system:
 
 1. Cognitive Plane (mutable)
-2. Lineage Plane (immutable event log)
+2. Lineage Plane (immutable, queryable, replayable)
 
 Execution split:
 
-- Hot path: S3 Vectors + S3 objects (event log and materialized memory state)
-- Cold / analytic path: Athena + Glue Data Catalog + Parquet compacted history
+- S3 Vectors for similarity retrieval and recall-facing memory
+- S3 Tables for canonical queryable lineage and long-term audit history
+- Athena for SQL analysis over lineage
+- IAM for v0 access control
+- Lake Formation deferred unless fine-grained governance is required
 
 Storage boundary rule:
-- S3 Vectors bucket/index is retrieval-plane only.
-- Parquet for analytics lives in separate standard S3 analytics storage (bucket or strictly isolated analytics prefix).
-- Raw event objects remain source-of-truth storage.
-- Vectors may influence recall; event/parquet lineage must explain recall.
+
+- S3 Vectors is retrieval-plane only. It is mutable and rebuildable.
+- S3 Tables is canonical lineage storage. It is the queryable source of truth.
+- Memory state objects and vector records are materialized views.
+- Vectors may influence recall; S3 Tables lineage must explain recall.
+
+Core invariant:
+
+```text
+Cognitive plane may mutate.
+Lineage plane must not.
+```
+
+---
+
+## AWS Architecture
+
+### Required v0 Services
+
+- Amazon S3 Vectors
+- Amazon S3 Tables
+- Amazon Athena
+- IAM
+- Python workers/services
+
+### Deferred Until Needed
+
+- AWS Lake Formation
+- DynamoDB
+- Redis
+- OpenSearch
+- custom Parquet ETL
+- custom Glue crawlers
+
+Lake Formation is useful later for:
+
+- row-level policy
+- column-level policy
+- cross-account sharing
+- central data governance
+
+Do not introduce it in v0 unless one of those needs is explicit.
 
 ---
 
 ## Core Components
 
-### 1. Event Log (Append-Only)
-Storage: S3 objects
+### 1. Canonical Lineage Store
 
-Key namespace guidance:
-- Use a replay-friendly path scheme that supports ordered stream replay and coarse time partitioning.
-- Keep naming conventions stable for append-only ingestion, but defer exact prefix grammar until the namespace-design sprint.
+Storage: S3 Tables
 
-Event body (simplified):
+Table bucket: `AWS_S3_TABLE_BUCKET_NAME`
+
+Tables:
+
+- `memory_events`
+- `memory_states`
+- `memory_edges`
+- `memory_retrievals`
+- `memory_scores`
+- `memory_snapshots`
+
+S3 Tables are the canonical queryable event and lineage layer.
+
+Raw event JSON objects are optional in v0. If used, they are ingress artifacts, not the primary analytic surface.
+
+Event schema (simplified):
+
 - event_id
+- agent_id
+- stream_id
 - sequence
-- event_type (observed | recalled | mutated | promoted | quarantined | deleted)
+- event_type
 - memory_id
 - payload
 - source
+- source_payload_hash
 - timestamp
+- event_time
+- actor
+- request_id
+- parent_event_id
+
+Event types:
+
+- observed
+- recalled
+- mutated
+- promoted
+- contradicted
+- quarantined
+- deleted
+- compacted
+- snapshotted
 
 Guarantees:
-- append-only
-- no updates
+
+- append-only semantics
 - tombstones for deletion
-- prefix-order replay within a stream
+- replayable state reconstruction
+- no destructive mutation of lineage
 
 ---
 
-### 2. Memory State Store
-Storage: S3 memory-state objects + S3 Vectors
+### 2. Recall Index
 
-Object namespace guidance:
-- Separate active, quarantined, and deleted/tombstoned state at the prefix level.
-- Keep state layout rebuild-friendly and auditable, but finalize exact object key templates during the namespace-design sprint.
+Storage: S3 Vectors
 
-State body:
-- memory_id
-- claim
-- trust_score
-- confidence
-- decay_score
-- last_recalled
-- access_count
-- status (active | quarantined | deleted)
-- conflict links
-- lineage pointers
+Vector bucket: `AWS_VECTOR_BUCKET_NAME`
 
-Vector index:
-```
-vector_bucket: experimental-memory
-index: memories-v1
-```
+Index: `memories-v1`
+
+Purpose:
+
+- similarity search
+- recall surface
+- candidate generation
+
+Not purpose:
+
+- source of truth
+- audit log
+- canonical belief state
 
 Vector metadata:
+
 - memory_id
 - claim_hash
 - source_event_id
 - source_payload_hash
 - agent_id
+- stream_id
 - status
 - kind
 - source_trust
@@ -96,216 +172,360 @@ Vector metadata:
 - assertion_ts
 - has_conflicts
 
-S3 event objects are the source of truth. S3 memory-state objects and S3 Vectors records are rebuildable materializations.
+Rules:
 
-Use S3 object metadata only for small routing fields. Put real state in JSON bodies. Object keys are the coarse index; S3 Vectors metadata filters are the retrieval-side filter.
-
-Lineage invariants (must hold):
-1. Every vector maps to a source event object identity or source payload hash.
-2. Every Parquet row is traceable to raw event identity.
-3. Vector indexes can be dropped and rebuilt from durable event/parquet data.
+1. Every vector maps to a source event identity or payload hash.
+2. Vector records can be deleted and rebuilt from S3 Tables.
+3. Vector metadata is for retrieval filtering, not durable truth.
 
 ---
 
-### 3. Eligibility Engine
+### 3. Materialized Memory State
+
+Storage: S3 Tables, optionally mirrored to S3 objects for cheap point reads.
+
+State schema:
+
+- memory_id
+- agent_id
+- claim
+- trust_score
+- confidence
+- decay_score
+- last_recalled
+- access_count
+- status
+- conflict_links
+- lineage_pointers
+- updated_at
+
+Status:
+
+- active
+- quarantined
+- suppressed
+- deleted
+
+Memory state is rebuildable from `memory_events`.
+
+---
+
+### 4. Eligibility Engine
 
 Function:
+
+```text
 eligibility = relevance * trust * recency * reinforcement * consistency * safety
+```
 
 Inputs:
+
 - query embedding
+- vector candidates
 - memory metadata
 - conflict set
+- agent policy
+- source policy
 
 Output:
+
 - ranked eligible memories
+- rejected memories with reasons
+
+The rejection reasons matter. They are part of audit.
 
 ---
 
-### 4. Retrieval Engine
+### 5. Retrieval Engine
 
 Steps:
+
 1. embed query
-2. retrieve top-k via S3 Vectors
-3. apply eligibility filter
-4. load needed memory-state objects from S3
-5. return filtered set
-
----
-
-### 5. Conflict Engine
-
-Data model:
-- memory_id_a
-- memory_id_b
-- relation (contradicts | supports)
-
-Rules:
-- never auto-resolve
-- conflicts reduce eligibility score
-
----
-
-### 6. Time Engine
-
-Background worker:
-
-- decay:
-  decay_score = exp(-λ * time_since_last_reinforced)
-
-- reinforcement:
-  increment on recall
-
-- pruning:
-  mark low-score memories inactive (not deleted)
-
----
-
-### 7. Promotion Engine
+2. retrieve top-k candidates from S3 Vectors
+3. load state and conflict data from S3 Tables or materialized cache
+4. apply eligibility filter
+5. emit `memory_retrieved` / `memory_rejected` lineage events
+6. return eligible memories
 
 Rule:
-if access_count > K and context_variance < ε:
+
+```text
+retrieval is not belief
+retrieval is candidate generation
+eligibility decides influence
+```
+
+---
+
+### 6. Conflict Engine
+
+Data model:
+
+- memory_id_a
+- memory_id_b
+- relation
+- confidence
+- source_event_id
+- created_at
+
+Relations:
+
+- supports
+- contradicts
+- derived_from
+- supersedes
+- weakens
+
+Rules:
+
+- never auto-resolve contradictions
+- conflicts reduce or reshape eligibility
+- resolution must create a lineage event
+
+---
+
+### 7. Time Engine
+
+Functions:
+
+Decay:
+
+```text
+decay_score = exp(-lambda * time_since_last_reinforced)
+```
+
+Reinforcement:
+
+- increment on recall
+- increment on external confirmation
+- decrement on contradiction or failed use
+
+Pruning:
+
+- mark low-score memories inactive or suppressed
+- do not physically delete canonical lineage
+
+---
+
+### 8. Promotion Engine
+
+Rule:
+
+```text
+if access_count > K and context_variance < epsilon:
     promote(memory)
+```
 
 Promotion:
-- create new semantic memory
-- link via derived_from
-- keep original episodic traces
+
+- create semantic memory
+- link to episodic source memories via `derived_from`
+- retain original traces in lineage
+- write promotion event
+- update recall index
+
+Promotion is earned, not scheduled.
 
 ---
 
-### 8. Sleep Worker (Batch Job)
+### 9. Sleep Engine
 
-Runs periodically.
+Batch/offline worker.
 
-Tasks:
-- scan event prefixes
-- replay high-value memories
-- dedupe similar embeddings
-- compress into summaries
+Responsibilities:
+
+- replay recent lineage
+- recompute memory scores
+- dedupe similar traces
 - promote stable patterns
-- quarantine conflicting clusters
-- rewrite materialized memory-state objects
-- upsert vectors
-- write snapshots and manifests
-- compact raw JSON events/state deltas into partitioned Parquet
+- weaken stale traces
+- quarantine risky clusters
+- write snapshots
+- rebuild or refresh S3 Vectors
+- emit derived state rows into S3 Tables
+
+The sleep engine is the system’s offline cognition layer.
 
 ---
 
-### 9. Poisoning Detection
+### 10. Poisoning Detection
 
 Signals:
+
 - high trust + low support
 - sudden influence spike
 - conflict density increase
+- single-source semantic dominance
+- repeated contradiction from independent sources
 
-Action:
+Actions:
+
 - quarantine memory
 - reduce eligibility to zero
+- emit quarantine event
+- preserve source evidence
+- require explicit release event to restore influence
+
+Trusted sources may be wrong.
 
 ---
 
-### 10. Audit API
+### 11. Audit and Analytics
 
-Endpoints:
+Query layer: Athena over S3 Tables.
 
-GET /beliefs/current
-GET /beliefs/{time}
-GET /memory/{id}/lineage
-GET /diff/{t1}/{t2}
+Required questions:
 
-Must answer:
-- what changed?
-- why?
-- source of change?
+- What does the agent believe now?
+- What did it believe at time T?
+- Why?
+- What changed?
+- What was absent?
+- Which source caused the change?
+- Which memories influenced a given output?
+- Which memories were retrieved but rejected?
+
+Required views or queries:
+
+- belief timeline
+- memory lineage
+- source influence graph
+- poison spread radius
+- drift over repeated recall
+- promotion history
+- quarantine history
+- replay equality checks
 
 ---
 
-## Infrastructure
+## IAM and Isolation
 
-- S3 bucket for append-only event lineage
-- S3 bucket/prefixes for materialized memory state, claims, snapshots, and manifests
-- S3 Vectors for similarity search with metadata filters
-- Athena for replay checks, drift analysis, poisoning spread, and decay curves
-- Glue Data Catalog for schema and table metadata
-- Parquet tables (partitioned by date/hour) generated from compaction jobs
-- DynamoDB only if point lookup/query pain appears
-- Python service (API + workers)
+Agent isolation should be enforced at the storage and API layer.
 
-Compaction flow:
-`events/raw/.../*.json` -> `events/parquet/dt=YYYY-MM-DD/hour=HH/*.parquet` -> Athena
+Key rule:
 
-Cold-path rule:
-- raw event objects are the source of truth
-- Athena reads compacted Parquet, not tiny raw JSON event objects
+```text
+agent_id must be available in storage paths, table columns, and vector metadata.
+```
 
-Biology mapping (design intuition, not literal mimicry):
+IAM should enforce:
+
+- agent workers can access only their own memory scope
+- sleep workers can access assigned agent scopes
+- audit workers may read lineage but cannot mutate it
+- vector rebuild workers may recreate indexes but not alter canonical lineage
+
+Wildcards belong in IAM policy boundaries, not S3 listing logic.
+
+---
+
+## Biology Mapping
+
+Design intuition, not literal mimicry:
+
 - sensory trace / hippocampal recall surface -> S3 Vectors
-- sleep consolidation -> compaction workers
-- cortical long-term memory -> Parquet + Athena
+- sleep consolidation -> sleep engine
+- cortical long-term memory -> S3 Tables + Athena
+- immutable machine audit -> improvement over biology
 
 Machine improvement:
-- long-term memory remains auditable and replayable
+
+- long-term memory remains auditable
+- belief is replayable
+- mutation has provenance
+- absence can be audited
 
 ---
 
 ## Experiments
 
 ### E1: Trust vs Truth
-- inject true low-trust vs false high-trust
-- observe selection
+
+- inject true low-trust vs false high-trust memories
+- observe eligibility selection
+- verify lineage explains the outcome
 
 ### E2: Drift via Reconsolidation
-- repeated recall under context shift
+
+- repeatedly recall under shifting context
+- measure semantic drift and confidence movement
 
 ### E3: Time Reinforcement
-- spaced vs single exposure
+
+- compare spaced exposure vs single strong exposure
+- measure decay and survival
 
 ### E4: Conflict Handling
-- persistent contradictions
+
+- create persistent contradictions
+- verify system stores conflict without collapse
 
 ### E5: Promotion
-- episodic → semantic emergence
+
+- feed repeated episodic traces
+- observe semantic memory emergence
 
 ### E6: Poisoning
-- trusted adversarial input
+
+- inject trusted adversarial input
+- track spread, quarantine, and recovery
 
 ### E7: Replay Integrity
-- rebuild state from log
-- verify equality
+
+- rebuild state from S3 Tables lineage
+- verify equality with materialized memory state
+
+### E8: Vector Rebuild
+
+- delete S3 Vector index
+- rebuild from canonical lineage
+- verify retrieval equivalence within tolerance
 
 ---
 
 ## Metrics
 
 - belief accuracy under conflict
+- eligibility rejection quality
 - drift rate over repeated recall
 - poisoning spread radius
+- quarantine latency
 - replay determinism
 - promotion precision
+- vector rebuild fidelity
+- audit query coverage
 
 ---
 
 ## Non-Goals (v0)
 
-- distributed system
+- distributed production system
 - real-time scaling
 - perfect truth inference
 - full ontology reasoning
+- row-level Lake Formation governance
+- custom data lake ETL stack
 
 ---
 
 ## Acceptance Criteria
 
-1. System distinguishes belief vs retrieval
-2. Conflicts persist without collapse
-3. Poisoned memory can be quarantined
-4. Replay reconstructs state exactly
-5. Promotion produces stable abstractions
+1. System distinguishes belief from retrieval.
+2. Conflicts persist without collapse.
+3. Poisoned memory can be quarantined.
+4. S3 Tables lineage reconstructs state exactly.
+5. S3 Vectors can be rebuilt from canonical lineage.
+6. Promotion produces stable abstractions.
+7. Athena can answer the core audit questions.
 
 ---
 
 ## Guiding Constraint
 
-Cognitive plane may mutate.
-Lineage plane must not.
+```text
+S3 Tables are canonical lineage.
+S3 Vectors are rebuildable recall indexes.
+Athena is the audit microscope.
+IAM is the v0 boundary.
+Lake Formation is deferred governance.
+```
