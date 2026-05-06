@@ -90,6 +90,9 @@ Distributed scale, real-time throughput as a primary concern, perfect truth infe
 - [`notes/AMENDED_NOTES.md`](notes/AMENDED_NOTES.md) — conceptual model, lifecycle, poisoning, biological parallels
 - [`specs/BROAD_EXPERIMENT_SPEC.md`](specs/BROAD_EXPERIMENT_SPEC.md) — lab scope, modules, acceptance framing
 - [`specs/ENGINEERING_SPEC.md`](specs/ENGINEERING_SPEC.md) — S3-first backend, components, audit endpoints, metrics
+- [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) — API routes, payloads, and error envelope
+- [`infra/README.md`](infra/README.md) — CDK bootstrap/synth/deploy/destroy workflow
+- [`plans/`](plans/) — canonical archive of project plans (sequentially numbered with original filenames)
 
 ## Environment configuration
 
@@ -106,6 +109,17 @@ The project supports `.env`-based configuration for AWS/runtime settings.
    - `MEMORY_ROOT`
 
 `.env` values are loaded at startup and act as defaults; existing shell environment variables still win unless explicitly overridden.
+
+## Infrastructure workflow
+
+Use helper scripts:
+
+- `scripts/cdk.sh synth`
+- `scripts/cdk.sh deploy`
+- `scripts/cdk.sh destroy`
+- `scripts/infra_smoke.sh`
+
+Use AWS profile `stack-research` (default in scripts).
 
 ## Guiding principle
 

@@ -1,0 +1,39 @@
+# CDK Infrastructure
+
+This folder contains Python CDK stacks for memory backend infrastructure.
+
+## Prerequisites
+
+- AWS CDK CLI installed (`npm i -g aws-cdk`)
+- Python 3.11+
+- AWS credentials configured for profile `stack-research`
+
+## Setup
+
+```bash
+cd infra
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Deploy
+
+```bash
+AWS_PROFILE=stack-research cdk bootstrap
+AWS_PROFILE=stack-research cdk synth
+AWS_PROFILE=stack-research cdk deploy --all
+```
+
+## Destroy
+
+```bash
+AWS_PROFILE=stack-research cdk destroy --all
+```
+
+## Stack design
+
+- `MemoryDataStack`: S3 buckets + SSM params
+- `MemoryComputeStack`: API Lambda, Sleep Lambda, API Gateway, EventBridge schedule, Glue DB, Athena workgroup
+
+Environment variables passed to lambdas match `src/memory_lab/config.py`.

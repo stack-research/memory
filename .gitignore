@@ -91,3 +91,8 @@ dmypy.json
 .directory
 .Trash-*
 .nfs*
+
+# AWS CDK / infra build artifacts
+infra/.venv/
+infra/cdk.out/
+infra/.cdk.staging/

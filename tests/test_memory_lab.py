@@ -69,6 +69,7 @@ def test_dotenv_settings(tmp_path: Path, monkeypatch) -> None:
         encoding="utf-8",
     )
     monkeypatch.delenv("AWS_VECTOR_BUCKET_NAME", raising=False)
+    monkeypatch.delenv("AWS_VECTOR_INDEX_NAME", raising=False)
     load_dotenv(env_file)
     settings = Settings.from_env()
     assert settings.aws_profile == "stack-research"

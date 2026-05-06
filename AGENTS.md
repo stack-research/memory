@@ -55,3 +55,6 @@ Hard rule:
 - AWS CLI/CDK/SDK interaction should use the aws profile `stack-research`.
 - The AWS CDK should be used for infrastructure as a service.
 - Amazon Bedrock for LLMs and embeddings
+- Plan archival rule:
+  - When a new plan is created, copy it into the project-local `plans/` directory for long-term reference.
+  - Name archived copies sequentially and preserve the original plan filename (for example: `01-original_filename.plan.md`).
