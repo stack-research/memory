@@ -506,7 +506,7 @@ That is essentially:
 
 ⸻
 
-The next step is to design a concrete memory control plane (S3 event lineage / S3 memory state / S3 Vectors) that actually implements these biological constraints instead of just storing embeddings.
+The next step is to design a concrete memory control plane (hot path on S3 Vectors + S3 objects, cold / analytic path on Athena + Glue + Parquet) that actually implements these biological constraints instead of just storing embeddings.
 
 ---
 
@@ -970,10 +970,17 @@ What you learn
 
 Keep it tight:
 
-* S3 event objects (events, lineage)
-* S3 memory-state objects (current materialized state)
-* S3 Vectors (embedding index + metadata filters)
-* background worker (decay, promotion, quarantine)
+* Hot path:
+  * S3 Vectors for similarity search
+  * S3 event objects (events, lineage)
+  * S3 memory-state objects (current materialized state)
+* Cold / analytic path:
+  * Athena for replay checks, drift analysis, poisoning spread, and decay curves
+  * Glue Data Catalog for table schemas
+  * Parquet tables from compacted event/state history
+* Compaction flow:
+  * `events/raw/.../*.json` -> `events/parquet/dt=YYYY-MM-DD/hour=HH/*.parquet` -> Athena
+* background workers (decay, promotion, quarantine, compaction)
 
 No more than that.
 
@@ -1258,19 +1265,32 @@ This prevents a poisoned or decayed belief from becoming untraceable.
 
 A useful architecture:
 ```
-event_log
-  append(memory_observed)
-  append(memory_recalled)
-  append(memory_mutated)
-  append(memory_promoted)
-  append(memory_quarantined)
-  append(memory_deleted)
-materialized_memory_state
-  current working beliefs
-  summaries
-  embeddings
-  trust scores
-  decay state
+hot_path
+  s3_vectors
+    similarity search
+  s3_objects/event_log_raw
+    append(memory_observed)
+    append(memory_recalled)
+    append(memory_mutated)
+    append(memory_promoted)
+    append(memory_quarantined)
+    append(memory_deleted)
+  s3_objects/materialized_memory_state
+    current working beliefs
+    summaries
+    embeddings
+    trust scores
+    decay state
+cold_path
+  compaction_job
+    events/raw/.../*.json -> events/parquet/dt=YYYY-MM-DD/hour=HH/*.parquet
+  athena
+    replay checks
+    drift analysis
+    poisoning spread
+    decay curves
+  glue_data_catalog
+    schemas + table metadata
 ```
 
 Then you can always ask:

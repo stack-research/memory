@@ -33,12 +33,21 @@ A memory record is richer than content: claim, source, assertion/event time, con
 
 ## Stack (target)
 
-- **S3 objects** — append-only event lineage, materialized memory state, snapshots, manifests
-- **S3 Vectors** — similarity search with retrieval-side metadata filters
+- **Hot path**
+  - **S3 Vectors** — similarity search with retrieval-side metadata filters
+  - **S3 objects** — append-only event lineage, materialized memory state, snapshots, manifests
+- **Cold / analytic path**
+  - **Athena** — replay checks, drift analysis, poisoning spread, decay curves
+  - **Glue Data Catalog** — schemas and table metadata
+  - **Parquet tables** — compacted event/state history
 - **DynamoDB** (optional) — add only if point lookup or query pain appears
-- **Python** — API + background workers
+- **Python** — API + background workers (Amazon API Gateway + Lambda)
 
-Storage invariant: S3 event objects are the source of truth. Memory-state objects and vector records are rebuildable caches.
+Compaction flow: `events/raw/.../*.json -> events/parquet/dt=YYYY-MM-DD/hour=HH/*.parquet -> Athena`
+
+Storage invariant: raw S3 event objects are the source of truth. Memory-state objects and vector records are rebuildable caches. Athena reads compacted parquet, not tiny raw JSON event objects.
+
+Storage boundary rule: keep the S3 Vectors bucket/index retrieval-only. Keep compacted parquet in separate analytics storage (bucket or tightly isolated analytics prefix), not in the vector bucket.
 
 ## Experiments
 

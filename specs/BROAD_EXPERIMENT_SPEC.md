@@ -27,6 +27,29 @@ Why?
 What changed it?
 What was absent?
 
+Architecture split for experiments:
+
+- Hot path:
+  - S3 Vectors for similarity retrieval
+  - S3 event objects (append-only lineage)
+  - S3 memory-state objects (materialized beliefs)
+- Cold / analytic path:
+  - Athena for replay checks, drift analysis, poisoning spread, and decay curves
+  - Glue Data Catalog for schemas
+  - Parquet tables from compacted history
+
+Compaction flow:
+`events/raw/.../*.json` -> `events/parquet/dt=YYYY-MM-DD/hour=HH/*.parquet` -> Athena
+
+Hard rule:
+Vectors may influence recall.
+Parquet/event lineage must explain recall.
+
+Invariants to prove in experiments:
+1. Every vector maps to a source event object identity or source payload hash.
+2. Every Parquet row is traceable to raw event identity.
+3. Vector indexes can be deleted and rebuilt from durable event/parquet data.
+
 First experiments:
 
 E1: trusted false source vs weaker true source

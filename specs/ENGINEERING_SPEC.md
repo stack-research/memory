@@ -17,6 +17,17 @@ Two-plane system:
 1. Cognitive Plane (mutable)
 2. Lineage Plane (immutable event log)
 
+Execution split:
+
+- Hot path: S3 Vectors + S3 objects (event log and materialized memory state)
+- Cold / analytic path: Athena + Glue Data Catalog + Parquet compacted history
+
+Storage boundary rule:
+- S3 Vectors bucket/index is retrieval-plane only.
+- Parquet for analytics lives in separate standard S3 analytics storage (bucket or strictly isolated analytics prefix).
+- Raw event objects remain source-of-truth storage.
+- Vectors may influence recall; event/parquet lineage must explain recall.
+
 ---
 
 ## Core Components
@@ -24,14 +35,9 @@ Two-plane system:
 ### 1. Event Log (Append-Only)
 Storage: S3 objects
 
-Key shape:
-```
-s3://agent-memory/events/
-  dt=YYYY-MM-DD/
-    agent={agent_id}/
-      stream={stream_id}/
-        {sequence}.{event_type}.json
-```
+Key namespace guidance:
+- Use a replay-friendly path scheme that supports ordered stream replay and coarse time partitioning.
+- Keep naming conventions stable for append-only ingestion, but defer exact prefix grammar until the namespace-design sprint.
 
 Event body (simplified):
 - event_id
@@ -53,13 +59,9 @@ Guarantees:
 ### 2. Memory State Store
 Storage: S3 memory-state objects + S3 Vectors
 
-Object shape:
-```
-s3://agent-memory/memories/
-  active/memory_id={memory_id}/state.json
-  quarantined/memory_id={memory_id}/state.json
-  deleted/memory_id={memory_id}/tombstone.json
-```
+Object namespace guidance:
+- Separate active, quarantined, and deleted/tombstoned state at the prefix level.
+- Keep state layout rebuild-friendly and auditable, but finalize exact object key templates during the namespace-design sprint.
 
 State body:
 - memory_id
@@ -75,13 +77,15 @@ State body:
 
 Vector index:
 ```
-vector_bucket: agent-memory-vectors
+vector_bucket: agent-memory
 index: memories-v1
 ```
 
 Vector metadata:
 - memory_id
 - claim_hash
+- source_event_id
+- source_payload_hash
 - agent_id
 - status
 - kind
@@ -95,6 +99,11 @@ Vector metadata:
 S3 event objects are the source of truth. S3 memory-state objects and S3 Vectors records are rebuildable materializations.
 
 Use S3 object metadata only for small routing fields. Put real state in JSON bodies. Object keys are the coarse index; S3 Vectors metadata filters are the retrieval-side filter.
+
+Lineage invariants (must hold):
+1. Every vector maps to a source event object identity or source payload hash.
+2. Every Parquet row is traceable to raw event identity.
+3. Vector indexes can be dropped and rebuilt from durable event/parquet data.
 
 ---
 
@@ -179,6 +188,7 @@ Tasks:
 - rewrite materialized memory-state objects
 - upsert vectors
 - write snapshots and manifests
+- compact raw JSON events/state deltas into partitioned Parquet
 
 ---
 
@@ -216,8 +226,26 @@ Must answer:
 - S3 bucket for append-only event lineage
 - S3 bucket/prefixes for materialized memory state, claims, snapshots, and manifests
 - S3 Vectors for similarity search with metadata filters
+- Athena for replay checks, drift analysis, poisoning spread, and decay curves
+- Glue Data Catalog for schema and table metadata
+- Parquet tables (partitioned by date/hour) generated from compaction jobs
 - DynamoDB only if point lookup/query pain appears
 - Python service (API + workers)
+
+Compaction flow:
+`events/raw/.../*.json` -> `events/parquet/dt=YYYY-MM-DD/hour=HH/*.parquet` -> Athena
+
+Cold-path rule:
+- raw event objects are the source of truth
+- Athena reads compacted Parquet, not tiny raw JSON event objects
+
+Biology mapping (design intuition, not literal mimicry):
+- sensory trace / hippocampal recall surface -> S3 Vectors
+- sleep consolidation -> compaction workers
+- cortical long-term memory -> Parquet + Athena
+
+Machine improvement:
+- long-term memory remains auditable and replayable
 
 ---
 
@@ -279,5 +307,5 @@ Must answer:
 
 ## Guiding Constraint
 
-Cognitive plane may mutate.  
+Cognitive plane may mutate.
 Lineage plane must not.

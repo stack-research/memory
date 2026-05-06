@@ -1,7 +1,5 @@
-# Agentic Memory – Amended Notes
-
-## Core Thesis
-Memory is not storage.  
+# Core Thesis
+Memory is not storage.
 Memory is a control system that governs how past signals influence future computation.
 
 ---
@@ -30,9 +28,7 @@ Rules:
 - preserve provenance
 - support full replay
 
-Key invariant:
-memory may mutate  
-lineage must not  
+Key invariant: memory may mutate, lineage must not
 
 ---
 
@@ -155,19 +151,39 @@ Avoid:
 
 ## System Architecture (Minimal)
 
-- S3 event objects for immutable lineage
-- S3 memory-state objects for current materialized state
-- S3 Vectors for similarity search and retrieval-side metadata filters
-- S3 object keys, metadata, and tags for coarse routing only
-- DynamoDB only if point lookup or query pain appears
-- background worker (sleep + decay + promotion)
+- Hot path:
+  - S3 Vectors as the sensory / working / recall-facing memory surface
+  - S3 objects for memory state + append-only raw event payloads
+- Cold / analytic path:
+  - Athena for replay checks, drift analysis, poisoning spread, and decay curves
+  - Glue Data Catalog for table schemas
+  - Parquet tables as consolidated / analytic / long-term lineage memory
+- Compaction flow:
+  - `events/raw/.../*.json` -> `events/parquet/dt=YYYY-MM-DD/hour=HH/*.parquet` -> Athena
+- background workers (sleep + decay + promotion + compaction)
 
 Backend rule:
 
-- event objects are the source of truth
+- raw event objects are the source of truth
 - memory-state objects are rebuildable
 - vector records are influence indexes, not truth
+- Athena reads compacted Parquet, not tiny raw JSON event objects
 - snapshots and manifests exist to make replay auditable
+- vectors may influence recall; event/parquet lineage must explain recall
+
+Proof invariants:
+
+1. Every vector maps to a source event object identity or source payload hash.
+2. Every Parquet row is traceable to raw event identity.
+3. Vector indexes can be deleted and rebuilt from durable event/parquet data.
+
+Biology mapping:
+- sensory trace / hippocampal recall surface -> S3 Vectors
+- sleep consolidation -> compaction job
+- cortical long-term memory -> Parquet + Athena
+
+Machine improvement:
+- unlike biology, long-term memory remains auditable and replayable
 
 ---
 
@@ -214,6 +230,6 @@ The system must change belief based on experience, not just retrieval order.
 
 ## Guiding Principle
 
-Use biology for adaptive behavior.  
-Use machines for auditability.  
+Use biology for adaptive behavior.
+Use machines for auditability.
 Never confuse the two.
