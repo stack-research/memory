@@ -41,13 +41,20 @@ A memory record is richer than content: claim, source, assertion/event time, con
   - **Glue Data Catalog** — schemas and table metadata
   - **Parquet tables** — compacted event/state history
 - **DynamoDB** (optional) — add only if point lookup or query pain appears
-- **Python** — API + background workers (Amazon API Gateway + Lambda)
+- **Python** — API + background workers
 
 Compaction flow: `events/raw/.../*.json -> events/parquet/dt=YYYY-MM-DD/hour=HH/*.parquet -> Athena`
 
 Storage invariant: raw S3 event objects are the source of truth. Memory-state objects and vector records are rebuildable caches. Athena reads compacted parquet, not tiny raw JSON event objects.
 
 Storage boundary rule: keep the S3 Vectors bucket/index retrieval-only. Keep compacted parquet in separate analytics storage (bucket or tightly isolated analytics prefix), not in the vector bucket.
+
+Hard rule: vectors may influence recall; event/parquet lineage must explain recall.
+
+Traceability invariants:
+1. Every vector maps to a source event object identity or source payload hash.
+2. Every Parquet row is traceable to raw event identity.
+3. Vector indexes can be deleted and rebuilt from durable event/parquet data.
 
 ## Experiments
 
@@ -79,6 +86,7 @@ Distributed scale, real-time throughput as a primary concern, perfect truth infe
 
 ## Docs in this repo
 
+- [`AGENTS.md`](AGENTS.md) — operating rules and architecture guardrails for coding agents
 - [`notes/AMENDED_NOTES.md`](notes/AMENDED_NOTES.md) — conceptual model, lifecycle, poisoning, biological parallels
 - [`specs/BROAD_EXPERIMENT_SPEC.md`](specs/BROAD_EXPERIMENT_SPEC.md) — lab scope, modules, acceptance framing
 - [`specs/ENGINEERING_SPEC.md`](specs/ENGINEERING_SPEC.md) — S3-first backend, components, audit endpoints, metrics
