@@ -16,14 +16,21 @@ class AthenaLineageIngestionJob:
             raise ValueError("AWS_S3_LINEAGE_INGRESS_BUCKET_NAME must be set")
 
         statement_results: list[dict] = []
-        for statement in self._build_statements():
-            qid = self._start(statement)
+        for step in self._build_statement_plan():
+            qid = self._start(
+                step["statement"],
+                database=step["database"],
+                catalog=step["catalog"],
+            )
             state = self._wait(qid)
             statement_results.append(
                 {
                     "query_execution_id": qid,
                     "state": state,
-                    "statement": statement,
+                    "statement": step["statement"],
+                    "database": step["database"],
+                    "catalog": step["catalog"],
+                    "name": step["name"],
                 }
             )
             if state != "SUCCEEDED":
@@ -31,21 +38,24 @@ class AthenaLineageIngestionJob:
 
         return {"state": "SUCCEEDED", "statements": statement_results}
 
-    def _start(self, statement: str) -> str:
+    def _start(self, statement: str, *, database: str, catalog: str) -> str:
         resp = self.athena.start_query_execution(
             QueryString=statement,
             WorkGroup=self._workgroup(),
             QueryExecutionContext={
-                "Database": self._database(),
-                "Catalog": self._catalog(),
+                "Database": database,
+                "Catalog": catalog,
             },
         )
         return resp["QueryExecutionId"]
 
-    def _build_statements(self) -> list[str]:
+    def _build_statement_plan(self) -> list[dict[str, str]]:
         raw_table = self._raw_table()
         quarantine_table = self._quarantine_table()
-        target_table = self._target_table_fqn()
+        target_database, target_table = self._split_target_table_fqn()
+        source_catalog = self._catalog()
+        source_database = self._database()
+        source_raw_ref = f'"{source_catalog}"."{source_database}"."{raw_table}"'
         ingress_prefix = self.cfg.lineage_ingress_prefix.rstrip("/")
         ingress_path = f"s3://{self.cfg.lineage_ingress_bucket_name}/{ingress_prefix}/"
 
@@ -54,86 +64,96 @@ class AthenaLineageIngestionJob:
             f"{self.cfg.lineage_ingress_prefix.rstrip('/')}/quarantine/"
         )
 
-        target_path = (
-            f"s3://{self.cfg.lineage_ingress_bucket_name}/"
-            f"{self.cfg.lineage_ingress_prefix.rstrip('/')}/canonical/"
-        )
-
         return [
-            (
-                "CREATE EXTERNAL TABLE IF NOT EXISTS "
-                f"{raw_table} ("
-                "event_id string,"
-                "event_type string,"
-                "agent_id string,"
-                "stream_id string,"
-                "memory_id string,"
-                "event_time string,"
-                "parent_event_id string,"
-                "payload string"
-                ") "
-                "ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe' "
-                f"LOCATION '{ingress_path}'"
-            ),
-            (
-                "CREATE EXTERNAL TABLE IF NOT EXISTS "
-                f"{quarantine_table} ("
-                "raw_event string,"
-                "reason string,"
-                "ingested_at timestamp"
-                ") "
-                "STORED AS PARQUET "
-                f"LOCATION '{quarantine_path}'"
-            ),
-            (
-                "CREATE EXTERNAL TABLE IF NOT EXISTS "
-                f"{target_table} ("
-                "event_id string,"
-                "agent_id string,"
-                "stream_id string,"
-                "event_type string,"
-                "memory_id string,"
-                "payload string,"
-                "event_time timestamp,"
-                "parent_event_id string"
-                ") "
-                "STORED AS PARQUET "
-                f"LOCATION '{target_path}'"
-            ),
-            (
-                "INSERT INTO "
-                f"{target_table} "
-                "SELECT "
-                "event_id,"
-                "agent_id,"
-                "stream_id,"
-                "event_type,"
-                "memory_id,"
-                "payload,"
-                "from_iso8601_timestamp(event_time) AS event_time,"
-                "parent_event_id "
-                f"FROM {raw_table} "
-                "WHERE event_id IS NOT NULL "
-                "AND agent_id IS NOT NULL "
-                "AND event_type IS NOT NULL "
-                "AND memory_id IS NOT NULL "
-                "AND event_time IS NOT NULL"
-            ),
-            (
-                "INSERT INTO "
-                f"{quarantine_table} "
-                "SELECT "
-                "json_format(CAST(row(event_id, event_type, agent_id, stream_id, memory_id, event_time, parent_event_id, payload) AS JSON)),"
-                "'missing_required_field',"
-                "current_timestamp "
-                f"FROM {raw_table} "
-                "WHERE event_id IS NULL "
-                "OR agent_id IS NULL "
-                "OR event_type IS NULL "
-                "OR memory_id IS NULL "
-                "OR event_time IS NULL"
-            ),
+            {
+                "name": "create_raw_table",
+                "database": source_database,
+                "catalog": source_catalog,
+                "statement": (
+                    "CREATE EXTERNAL TABLE IF NOT EXISTS "
+                    f"{raw_table} ("
+                    "event_id string,"
+                    "event_type string,"
+                    "agent_id string,"
+                    "stream_id string,"
+                    "memory_id string,"
+                    "event_time string,"
+                    "parent_event_id string,"
+                    "payload string"
+                    ") "
+                    "ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe' "
+                    f"LOCATION '{ingress_path}'"
+                ),
+            },
+            {
+                "name": "create_quarantine_table",
+                "database": source_database,
+                "catalog": source_catalog,
+                "statement": (
+                    "CREATE EXTERNAL TABLE IF NOT EXISTS "
+                    f"{quarantine_table} ("
+                    "raw_event string,"
+                    "reason string,"
+                    "ingested_at timestamp"
+                    ") "
+                    "STORED AS PARQUET "
+                    f"LOCATION '{quarantine_path}'"
+                ),
+            },
+            {
+                "name": "insert_canonical",
+                "database": target_database,
+                "catalog": self.cfg.athena_s3tables_catalog,
+                "statement": (
+                    "INSERT INTO "
+                    f"{target_table} "
+                    "SELECT "
+                    "event_id,"
+                    "agent_id,"
+                    "stream_id,"
+                    "event_type,"
+                    "memory_id,"
+                    "payload,"
+                    "from_iso8601_timestamp(event_time) AS event_time,"
+                    "parent_event_id "
+                    f"FROM {source_raw_ref} "
+                    "WHERE event_id IS NOT NULL "
+                    "AND agent_id IS NOT NULL "
+                    "AND event_type IS NOT NULL "
+                    "AND memory_id IS NOT NULL "
+                    "AND event_time IS NOT NULL"
+                ),
+            },
+            {
+                "name": "insert_quarantine",
+                "database": source_database,
+                "catalog": source_catalog,
+                "statement": (
+                    "INSERT INTO "
+                    f"{quarantine_table} "
+                    "SELECT "
+                    "json_format(CAST(row(event_id, event_type, agent_id, stream_id, memory_id, event_time, parent_event_id, payload) AS JSON)),"
+                    "'missing_required_field',"
+                    "current_timestamp "
+                    f"FROM {raw_table} "
+                    "WHERE event_id IS NULL "
+                    "OR agent_id IS NULL "
+                    "OR event_type IS NULL "
+                    "OR memory_id IS NULL "
+                    "OR event_time IS NULL"
+                ),
+            },
         ]
+
+    def _split_target_table_fqn(self) -> tuple[str, str]:
+        target_table_fqn = self._target_table_fqn()
+        parts = target_table_fqn.split(".", 1)
+        if len(parts) != 2:
+            raise ValueError(
+                "AWS_ATHENA_TARGET_TABLE_FQN must be in 'database.table' format; "
+                f"got '{target_table_fqn}'"
+            )
+        return parts[0], parts[1]
 
     def _wait(self, query_execution_id: str) -> str:
         while True:
@@ -177,6 +197,4 @@ class AthenaLineageIngestionJob:
     def _target_table_fqn() -> str:
         import os
 
-        return os.environ.get(
-            "AWS_ATHENA_TARGET_TABLE_FQN", "memory_lab.lineage_events_canonical"
-        )
+        return os.environ.get("AWS_ATHENA_TARGET_TABLE_FQN", "memory_lab.memory_events")

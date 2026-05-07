@@ -13,7 +13,7 @@ Covers:
 - aggregate drift summary
 
 Run in Athena (workgroup `memory-lab`) against:
-- `memory_lab.lineage_events_canonical` (default)
+- `memory_lab.memory_events` (default)
 
 Or run automatically from repo root:
 - `make e2-analysis`

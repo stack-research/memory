@@ -12,6 +12,8 @@ class AwsConfig:
     table_bucket_name: str
     table_namespace: str
     table_name: str
+    athena_target_table_fqn: str
+    athena_s3tables_catalog: str
     lineage_ingress_bucket_name: str | None
     lineage_ingress_prefix: str
     vector_bucket_name: str
@@ -60,6 +62,11 @@ def load_config() -> AwsConfig:
         table_bucket_name=os.environ["AWS_S3_TABLE_BUCKET_NAME"],
         table_namespace=os.environ.get("AWS_S3_TABLE_NAMESPACE", "memory_lab"),
         table_name=os.environ.get("AWS_S3_TABLE_NAME", "memory_events"),
+        athena_target_table_fqn=os.environ.get("AWS_ATHENA_TARGET_TABLE_FQN", "memory_lab.memory_events"),
+        athena_s3tables_catalog=os.environ.get(
+            "AWS_ATHENA_S3TABLES_CATALOG",
+            f"s3tablescatalog/{os.environ['AWS_S3_TABLE_BUCKET_NAME']}",
+        ),
         lineage_ingress_bucket_name=os.environ.get("AWS_S3_LINEAGE_INGRESS_BUCKET_NAME"),
         lineage_ingress_prefix=os.environ.get("AWS_S3_LINEAGE_INGRESS_PREFIX", "lineage-events/"),
         vector_bucket_name=os.environ["AWS_S3_VECTOR_BUCKET_NAME"],

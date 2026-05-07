@@ -73,7 +73,21 @@ class MemoryLabStack(Stack):
             namespace=table_namespace,
             table_name=table_name,
             open_table_format="ICEBERG",
-            without_metadata="Yes",
+            iceberg_metadata=s3tables.CfnTable.IcebergMetadataProperty(
+                iceberg_schema=s3tables.CfnTable.IcebergSchemaProperty(
+                    schema_field_list=[
+                        s3tables.CfnTable.SchemaFieldProperty(name="event_id", type="string", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="agent_id", type="string", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="stream_id", type="string", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="event_type", type="string", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="memory_id", type="string", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="payload", type="string", required=False),
+                        s3tables.CfnTable.SchemaFieldProperty(name="event_time", type="timestamp", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="parent_event_id", type="string", required=False),
+                    ]
+                ),
+                table_properties={"format-version": "2"},
+            ),
         )
         lineage_table.add_dependency(lineage_namespace)
 

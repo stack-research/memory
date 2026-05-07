@@ -23,10 +23,10 @@ def _wait_for_query(athena: Any, query_execution_id: str) -> str:
         time.sleep(1)
 
 
-def _query_events(athena: Any, *, stream_id: str) -> list[dict[str, Any]]:
+def _query_events(athena: Any, *, target_table_fqn: str, stream_id: str) -> list[dict[str, Any]]:
     sql = (
         "SELECT memory_id, event_type, payload, event_time "
-        "FROM memory_lab.lineage_events_canonical "
+        f"FROM {target_table_fqn} "
         f"WHERE stream_id = '{stream_id}' "
         "ORDER BY event_time"
     )
@@ -120,7 +120,11 @@ def run() -> None:
     vectors.delete_memory_vectors([m["memory_id"] for m in memories])
 
     # replay from canonical lineage table
-    events = _query_events(athena, stream_id=stream_id)
+    events = _query_events(
+        athena,
+        target_table_fqn=cfg.athena_target_table_fqn,
+        stream_id=stream_id,
+    )
     rebuilt: dict[str, dict[str, Any]] = {}
     source_memory_ids = {m["memory_id"] for m in memories}
     for event in events:
