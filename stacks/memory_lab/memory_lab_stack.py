@@ -83,6 +83,7 @@ class MemoryLabStack(Stack):
                         s3tables.CfnTable.SchemaFieldProperty(name="memory_id", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="payload", type="string", required=False),
                         s3tables.CfnTable.SchemaFieldProperty(name="event_time", type="timestamp", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="schema_version", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="parent_event_id", type="string", required=False),
                     ]
                 ),

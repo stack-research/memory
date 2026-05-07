@@ -23,8 +23,10 @@ IAM is the v0 boundary.
 
 Current lab ingestion path (explicit temporary simplification):
 - Engine code appends lineage events as JSON objects to the ingress S3 bucket (`AWS_S3_LINEAGE_INGRESS_BUCKET_NAME`).
+- Event envelope is required to include: `event_id`, `event_type`, `agent_id`, `stream_id`, `memory_id`, `event_time`, `schema_version`, `payload`, `parent_event_id`.
 - Athena ingestion job builds/uses `lineage_events_raw` and `lineage_events_quarantine`.
 - Athena ingestion writes validated rows to `AWS_ATHENA_TARGET_TABLE_FQN` (default `memory_lab.memory_events`).
+- Quarantine reason taxonomy includes: `missing_required_field`, `unsupported_schema_version`, `invalid_event_time_format`, `unknown_validation_failure`.
 - Keep event envelope stable so we can later tighten canonical write path directly into S3 Tables-managed lineage.
 
 ## Retrieval and Reality Safety

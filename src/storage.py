@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from typing import Any
 
 from .aws_session import make_session
 from .config import AwsConfig
-from .types import MemoryEvent
+from .types import EVENT_SCHEMA_VERSION, MemoryEvent
 
 
 class LineageStorage:
@@ -38,10 +39,29 @@ class LineageStorage:
                 namespace=self.cfg.table_namespace,
                 name=self.cfg.table_name,
                 format="ICEBERG",
-                withoutMetadata="Yes",
+                metadata={
+                    "iceberg": {
+                        "schema": {
+                            "fields": [
+                                {"name": "event_id", "type": "string", "required": True},
+                                {"name": "agent_id", "type": "string", "required": True},
+                                {"name": "stream_id", "type": "string", "required": True},
+                                {"name": "event_type", "type": "string", "required": True},
+                                {"name": "memory_id", "type": "string", "required": True},
+                                {"name": "payload", "type": "string", "required": False},
+                                {"name": "event_time", "type": "timestamp", "required": True},
+                                {"name": "schema_version", "type": "string", "required": True},
+                                {"name": "parent_event_id", "type": "string", "required": False},
+                            ]
+                        },
+                        "properties": {"format-version": "2"},
+                    }
+                },
             )
 
     def append_event(self, event: MemoryEvent) -> dict[str, Any]:
+        self._validate_event(event)
+
         record = {
             "event_id": event.event_id,
             "event_type": event.event_type,
@@ -49,6 +69,7 @@ class LineageStorage:
             "stream_id": event.stream_id,
             "memory_id": event.memory_id,
             "event_time": event.event_time,
+            "schema_version": event.schema_version,
             "parent_event_id": event.parent_event_id,
             "payload": event.payload,
         }
@@ -74,6 +95,34 @@ class LineageStorage:
             ContentType="application/json",
         )
         return record
+
+    @staticmethod
+    def _validate_event(event: MemoryEvent) -> None:
+        required = {
+            "event_id": event.event_id,
+            "event_type": event.event_type,
+            "agent_id": event.agent_id,
+            "stream_id": event.stream_id,
+            "memory_id": event.memory_id,
+            "event_time": event.event_time,
+            "schema_version": event.schema_version,
+        }
+        missing = [name for name, value in required.items() if not value]
+        if missing:
+            raise ValueError(f"Missing required event fields: {', '.join(missing)}")
+
+        if event.schema_version != EVENT_SCHEMA_VERSION:
+            raise ValueError(
+                f"Unsupported schema_version '{event.schema_version}', expected '{EVENT_SCHEMA_VERSION}'"
+            )
+
+        try:
+            datetime.fromisoformat(event.event_time)
+        except ValueError as exc:
+            raise ValueError(f"Invalid event_time ISO format: {event.event_time}") from exc
+
+        if not isinstance(event.payload, dict):
+            raise ValueError("Event payload must be a JSON object/dict")
 
     def _table_bucket_arn(self) -> str:
         region = self.cfg.region
