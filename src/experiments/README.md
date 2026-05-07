@@ -7,6 +7,9 @@ This directory contains runnable memory-lab experiments from `specs/EXPERIMENTS.
 From `stacks/`:
 
 - `PYTHONPATH=.. uv run python -m src.run_experiment e1`
+- `PYTHONPATH=.. uv run python -m src.run_experiment e2`
+- `PYTHONPATH=.. uv run python -m src.run_experiment e3`
+- `PYTHONPATH=.. uv run python -m src.run_experiment e4`
 
 Required environment comes from project root `.env` / `.env.local` (loaded by the stack tooling) and standard shell env for experiment runs.
 
@@ -26,6 +29,50 @@ Current behavior:
 - Emits `observed` lineage events.
 - Runs recall query and emits `recalled` or `rejected` events.
 
+### E2 - Repeated Recall Drift (with mutation)
+
+File: `e2_repeated_recall_drift.py`
+
+Purpose:
+- Force recall under changing context pressures.
+- Mutate memory text and metadata on each recall.
+- Measure drift against base and previous versions.
+
+Current behavior:
+- Seeds one episodic memory vector.
+- Runs repeated recalls with context-shifted queries.
+- Emits `recalled` then `mutated` lineage events in a causal chain.
+- Rewrites the same vector key after each mutation with updated trust/confidence/reinforcement metadata.
+- Logs cosine drift metrics so reconsolidation movement is measurable, not theatrical.
+
+Analysis artifact:
+- `sql/e2_drift_analysis.sql` contains Athena queries for drift timeline, score evolution, and summary metrics.
+
+### E3 - Time Reinforcement (Spaced vs Single Strong)
+
+File: `e3_time_reinforcement.py`
+
+Purpose:
+- Compare spaced reinforcement against a single strong write over increasing time gaps.
+
+Current behavior:
+- Seeds two memories with equal trust.
+- Applies repeated reinforcement to one memory at checkpoints.
+- Lets the other memory decay with only initial strong reinforcement.
+- Emits lineage events with eligibility score snapshots for comparison.
+
+### E4 - Conflict Persistence Under Retrieval
+
+File: `e4_conflict_persistence.py`
+
+Purpose:
+- Ensure contradictory memories persist together under repeated retrieval.
+
+Current behavior:
+- Seeds two conflicting claims with explicit contradiction metadata.
+- Emits `observed` and `contradicted` lineage events for both sides.
+- Runs repeated queries and logs accepted/rejected retrieval outcomes.
+
 Notes:
 - Lineage events are currently written as append-only JSON ingress objects in S3.
-- We will add more experiments here as they are implemented.
+- Run ingestion after experiments to move records into Athena canonical/quarantine tables.

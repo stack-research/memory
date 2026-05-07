@@ -43,6 +43,8 @@ A memory record is richer than content: claim, source, assertion/event time, con
 | E6 | Poisoning and spread / quarantine |
 | E7 | Audit replay—rebuild state from the log exactly |
 
+Implemented runners so far: `e1`, `e2`, `e3`, `e4` (see `src/experiments/README.md`).
+
 ## Success criteria
 
 The system should demonstrate **belief change driven by experience** (trust, time, conflict, sleep), **not** output that only tracks retrieval order.
@@ -61,6 +63,20 @@ Concrete checks (v0):
 - real-time throughput as a primary concern
 - perfect truth inference
 - or full ontology-style reasoning.
+
+## Common commands
+
+- `make synth`
+- `make deploy`
+- `make exp-e1`
+- `make exp-e2`
+- `make exp-e3`
+- `make exp-e4`
+- `make ingest`
+- `make show-tables`
+- `make e2-analysis`
+
+Override defaults as needed, e.g. `make deploy AWS_PROFILE=stack-research AWS_REGION=us-east-2`.
 
 ## Docs in this repo
 

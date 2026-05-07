@@ -29,12 +29,12 @@ def run() -> None:
     vectors.put_memory_vector(
         key="mem-false-trusted",
         vector=false_vec,
-        metadata={"source_trust": 0.95, "kind": "claim", "status": "active", "reinforcement": 1.0},
+        metadata={"source_trust": 0.95, "kind": "claim", "status": "active", "reinforcement": 1.0, "agent_id": agent_id, "stream_id": stream_id},
     )
     vectors.put_memory_vector(
         key="mem-true-weak",
         vector=true_vec,
-        metadata={"source_trust": 0.40, "kind": "claim", "status": "active", "reinforcement": 1.0},
+        metadata={"source_trust": 0.40, "kind": "claim", "status": "active", "reinforcement": 1.0, "agent_id": agent_id, "stream_id": stream_id},
     )
 
     print(

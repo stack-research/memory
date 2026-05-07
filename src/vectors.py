@@ -18,7 +18,15 @@ class RecallVectors:
             vectors=[{"key": key, "data": {"float32": vector}, "metadata": metadata}],
         )
 
-    def query(self, *, vector: list[float], top_k: int = 10, filter_text: str | None = None) -> dict[str, Any]:
+    def query(
+        self,
+        *,
+        vector: list[float],
+        top_k: int = 10,
+        filter_text: str | None = None,
+        agent_id: str | None = None,
+        stream_id: str | None = None,
+    ) -> dict[str, Any]:
         kwargs: dict[str, Any] = {
             "vectorBucketName": self.cfg.vector_bucket_name,
             "indexName": self.cfg.vector_index_name,
@@ -29,4 +37,19 @@ class RecallVectors:
         }
         if filter_text:
             kwargs["filter"] = filter_text
-        return self.client.query_vectors(**kwargs)
+
+        response = self.client.query_vectors(**kwargs)
+        if not agent_id and not stream_id:
+            return response
+
+        filtered: list[dict[str, Any]] = []
+        for row in response.get("vectors", []):
+            metadata = row.get("metadata", {})
+            if agent_id and metadata.get("agent_id") != agent_id:
+                continue
+            if stream_id and metadata.get("stream_id") != stream_id:
+                continue
+            filtered.append(row)
+
+        response["vectors"] = filtered
+        return response

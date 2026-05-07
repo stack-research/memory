@@ -22,7 +22,12 @@ class RecallEngine:
 
     def retrieve(self, *, agent_id: str, stream_id: str, query: str, top_k: int = 10) -> dict:
         query_vec = self.embedder.embed_text(query)
-        response = self.vectors.query(vector=query_vec, top_k=top_k)
+        response = self.vectors.query(
+            vector=query_vec,
+            top_k=top_k,
+            agent_id=agent_id,
+            stream_id=stream_id,
+        )
 
         accepted: list[dict] = []
         rejected: list[dict] = []
