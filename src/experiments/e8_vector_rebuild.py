@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from typing import Any
 
@@ -9,15 +11,20 @@ from src.ingestion.athena_ingestion import AthenaLineageIngestionJob
 from src.lineage_engine import LineageEngine
 from src.lineage_reader import build_lineage_reader
 from src.storage import LineageStorage
+from src.types import EVENT_SCHEMA_VERSION
 from src.vectors import RecallVectors
-
 
 
 def _top_keys(result: dict[str, Any], k: int = 3) -> list[str]:
     return [r.get("key", "") for r in result.get("vectors", [])[:k]]
 
 
-def run() -> None:
+def _top_signature(before_top: list[str], after_top: list[str]) -> str:
+    stable = json.dumps({"before": before_top, "after": after_top}, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(stable.encode("utf-8")).hexdigest()
+
+
+def run() -> dict[str, Any]:
     cfg = load_config()
     storage = LineageStorage(cfg)
     vectors = RecallVectors(cfg)
@@ -28,6 +35,8 @@ def run() -> None:
 
     agent_id = "lab-agent-1"
     stream_id = "exp-e8"
+    run_id = os.environ.get("MEMORY_LAB_REPLAY_RUN_ID", "phase5-default")
+    reader_backend = os.environ.get("AWS_LINEAGE_READER_BACKEND", "s3tables")
 
     seeds = [
         ("mem-e8-1", "Customer wants weekly summary email at 9 AM Monday."),
@@ -54,7 +63,7 @@ def run() -> None:
             agent_id=agent_id,
             stream_id=stream_id,
             memory_id=memory_id,
-            payload={"claim": claim, "status": "active", "confidence": 0.7},
+            payload={"run_id": run_id, "claim": claim, "status": "active", "confidence": 0.7},
         )
 
     ingestion.run_once()
@@ -76,7 +85,10 @@ def run() -> None:
         mid = event["memory_id"]
         if mid not in vector_keys:
             continue
-        claim = event.get("payload", {}).get("claim")
+        payload = event.get("payload", {})
+        if payload.get("run_id") != run_id:
+            continue
+        claim = payload.get("claim")
         if claim:
             rebuilt_claims[mid] = claim
 
@@ -99,7 +111,20 @@ def run() -> None:
     after_top = _top_keys(after, k=3)
 
     overlap = len(set(before_top).intersection(set(after_top)))
-    equivalent_within_tolerance = overlap >= 2
+    tolerance = int(os.environ.get("MEMORY_E8_TOPK_OVERLAP_TOLERANCE", "2"))
+    equivalent_within_tolerance = overlap >= tolerance
+    ranking_signature = _top_signature(before_top, after_top)
+
+    summary = {
+        "stream_id": stream_id,
+        "run_id": run_id,
+        "equivalent_within_tolerance": equivalent_within_tolerance,
+        "top3_overlap": overlap,
+        "tolerance": tolerance,
+        "before_top3": before_top,
+        "after_top3": after_top,
+        "ranking_signature": ranking_signature,
+    }
 
     lineage.emit(
         event_type="snapshotted",
@@ -107,23 +132,27 @@ def run() -> None:
         stream_id=stream_id,
         memory_id="vector-rebuild-e8",
         payload={
+            "snapshot_type": "vector_rebuild_equivalence",
+            "snapshot_stage": "post_rebuild",
+            "snapshot_cadence": "per_run",
+            "stream_id": stream_id,
+            "run_id": run_id,
             "query": query_text,
             "before_top3": before_top,
             "after_top3": after_top,
             "top3_overlap": overlap,
+            "tolerance": tolerance,
             "equivalent_within_tolerance": equivalent_within_tolerance,
-            "lineage_reader_backend": os.environ.get("AWS_LINEAGE_READER_BACKEND", "s3tables"),
+            "ranking_signature": ranking_signature,
+            "lineage_reader_backend": reader_backend,
+            "event_schema_version": EVENT_SCHEMA_VERSION,
+            **cfg.retrieval_policy.audit_fields(),
         },
     )
+    ingestion.run_once()
 
-    print(
-        {
-            "equivalent_within_tolerance": equivalent_within_tolerance,
-            "top3_overlap": overlap,
-            "before_top3": before_top,
-            "after_top3": after_top,
-        }
-    )
+    print(summary)
+    return summary
 
 
 if __name__ == "__main__":

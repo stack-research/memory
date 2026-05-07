@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from typing import Any
 
@@ -9,11 +11,16 @@ from src.ingestion.athena_ingestion import AthenaLineageIngestionJob
 from src.lineage_engine import LineageEngine
 from src.lineage_reader import build_lineage_reader
 from src.storage import LineageStorage
+from src.types import EVENT_SCHEMA_VERSION
 from src.vectors import RecallVectors
 
 
+def _state_signature(state: dict[str, dict[str, Any]]) -> str:
+    stable = json.dumps(state, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(stable.encode("utf-8")).hexdigest()
 
-def run() -> None:
+
+def run() -> dict[str, Any]:
     cfg = load_config()
     storage = LineageStorage(cfg)
     vectors = RecallVectors(cfg)
@@ -24,6 +31,8 @@ def run() -> None:
 
     agent_id = "lab-agent-1"
     stream_id = "exp-e7"
+    run_id = os.environ.get("MEMORY_LAB_REPLAY_RUN_ID", "phase5-default")
+    reader_backend = os.environ.get("AWS_LINEAGE_READER_BACKEND", "s3tables")
 
     memories = [
         {
@@ -46,7 +55,12 @@ def run() -> None:
             agent_id=agent_id,
             stream_id=stream_id,
             memory_id=m["memory_id"],
-            payload={"claim": m["claim"], "status": "active", "confidence": m["confidence"]},
+            payload={
+                "run_id": run_id,
+                "claim": m["claim"],
+                "status": "active",
+                "confidence": m["confidence"],
+            },
         )
         lineage.emit(
             event_type="mutated",
@@ -54,6 +68,7 @@ def run() -> None:
             stream_id=stream_id,
             memory_id=m["memory_id"],
             payload={
+                "run_id": run_id,
                 "claim": m["claim"] + " (reconfirmed)",
                 "status": "active",
                 "confidence": min(0.95, m["confidence"] + 0.09),
@@ -67,10 +82,8 @@ def run() -> None:
 
     ingest_result = ingestion.run_once()
 
-    # simulate materialized state loss
     vectors.delete_memory_vectors([m["memory_id"] for m in memories])
 
-    # replay from canonical lineage table
     events = lineage_reader.query_events(stream_id=stream_id)
     rebuilt: dict[str, dict[str, Any]] = {}
     source_memory_ids = {m["memory_id"] for m in memories}
@@ -82,6 +95,9 @@ def run() -> None:
             continue
 
         payload = event.get("payload", {})
+        if payload.get("run_id") != run_id:
+            continue
+
         if memory_id not in rebuilt:
             rebuilt[memory_id] = {"status": "active"}
         for key in ["claim", "status", "confidence"]:
@@ -108,21 +124,41 @@ def run() -> None:
         )
 
     equal = rebuilt == expected
+    signature = _state_signature(rebuilt)
+    summary = {
+        "stream_id": stream_id,
+        "run_id": run_id,
+        "replay_equal": equal,
+        "rebuilt": rebuilt,
+        "expected": expected,
+        "state_signature": signature,
+    }
+
     lineage.emit(
         event_type="snapshotted",
         agent_id=agent_id,
         stream_id=stream_id,
         memory_id="replay-e7",
         payload={
+            "snapshot_type": "replay_rebuild",
+            "snapshot_stage": "post_rebuild",
+            "snapshot_cadence": "per_run",
+            "stream_id": stream_id,
+            "run_id": run_id,
             "rebuilt_count": len(rebuilt),
             "expected_count": len(expected),
             "replay_equal": equal,
+            "state_signature": signature,
             "ingestion_state": ingest_result.get("state"),
-            "lineage_reader_backend": os.environ.get("AWS_LINEAGE_READER_BACKEND", "s3tables"),
+            "lineage_reader_backend": reader_backend,
+            "event_schema_version": EVENT_SCHEMA_VERSION,
+            **cfg.retrieval_policy.audit_fields(),
         },
     )
+    ingestion.run_once()
 
-    print({"replay_equal": equal, "rebuilt": rebuilt, "expected": expected})
+    print(summary)
+    return summary
 
 
 if __name__ == "__main__":

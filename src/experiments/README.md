@@ -14,6 +14,7 @@ From `stacks/`:
 - `PYTHONPATH=.. uv run python -m src.run_experiment e6`
 - `PYTHONPATH=.. uv run python -m src.run_experiment e7`
 - `PYTHONPATH=.. uv run python -m src.run_experiment e8`
+- `PYTHONPATH=.. uv run python -m src.experiments.lab_regression`
 
 Required environment comes from project root `.env` / `.env.local` (loaded by the stack tooling) and standard shell env for experiment runs.
 
@@ -22,6 +23,7 @@ Lineage replay readers are selected with `AWS_LINEAGE_READER_BACKEND`:
 - `athena` (compatibility path)
 
 Retrieval/quarantine policy is selected via env (`MEMORY_RETRIEVAL_POLICY_*`, `MEMORY_RETRIEVAL_ELIGIBILITY_THRESHOLD`, `MEMORY_QUARANTINE_RISK_THRESHOLD`).
+Replay/rebuild runs may be scoped with `MEMORY_LAB_REPLAY_RUN_ID`; E8 tolerance is configurable via `MEMORY_E8_TOPK_OVERLAP_TOLERANCE`.
 
 ## Experiments
 
@@ -117,11 +119,12 @@ Purpose:
 - Prove materialized state can be reconstructed from canonical lineage.
 
 Current behavior:
-- Emits observed/mutated events for two memories.
+- Emits observed/mutated events for two memories, tagged with `run_id`.
 - Runs ingestion to canonical Athena table.
 - Deletes materialized vectors for those memories.
-- Replays canonical lineage rows and rebuilds memory state.
+- Replays canonical lineage rows and rebuilds memory state for the same `run_id`.
 - Rewrites vectors from rebuilt state and checks replay equality.
+- Emits a reproducibility snapshot with replay signature and metadata.
 
 ### E8 - Vector Rebuild Equivalence
 
@@ -134,8 +137,9 @@ Current behavior:
 - Seeds three memories and ingests lineage.
 - Records baseline top-3 recall for a query.
 - Deletes only this experiment's vectors.
-- Rebuilds vectors from canonical lineage and reruns recall.
-- Compares top-3 overlap and marks equivalent if overlap >= 2.
+- Rebuilds vectors from canonical lineage for the same `run_id` and reruns recall.
+- Compares top-3 overlap and marks equivalent if overlap >= configured tolerance.
+- Emits a reproducibility snapshot with ranking signature and metadata.
 
 Notes:
 - Lineage events are currently written as append-only JSON ingress objects in S3.

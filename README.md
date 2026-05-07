@@ -82,6 +82,9 @@ Concrete checks (v0):
 - `make show-tables`
 - `make e2-analysis`
 - `make e5-analysis`
+- `make phase4-audit`
+- `make phase5-audit`
+- `make lab-regression`
 
 Override defaults as needed, e.g. `make deploy AWS_PROFILE=stack-research AWS_REGION=us-east-2`.
 
@@ -126,6 +129,9 @@ Reader abstraction is now configurable via `AWS_LINEAGE_READER_BACKEND` (`s3tabl
 
 Retrieval and quarantine policy is configurable via env (`MEMORY_RETRIEVAL_POLICY_*`, `MEMORY_RETRIEVAL_ELIGIBILITY_THRESHOLD`, `MEMORY_QUARANTINE_RISK_THRESHOLD`).
 `recalled`/`rejected`/`quarantined` lineage events now carry policy audit fields (`policy_id`, `policy_version`, `policy_effective_at`).
+
+Replay/rebuild hardening adds `MEMORY_LAB_REPLAY_RUN_ID` for idempotent run scoping and `MEMORY_E8_TOPK_OVERLAP_TOLERANCE` for configurable E8 equivalence tolerance.
+E7/E8 snapshot events now include reproducibility metadata (`lineage_reader_backend`, policy audit fields, `event_schema_version`, `run_id`).
 
 ## Guiding principle
 

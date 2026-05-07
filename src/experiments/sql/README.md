@@ -42,3 +42,15 @@ Covers:
 
 Run automatically from repo root:
 - `make phase4-audit`
+
+## Phase 5 Replay/Rebuild Hardening Audit
+
+File: `phase5_replay_hardening_audit.sql`
+
+Covers:
+- E7 run-scoped replay determinism (`state_signature` stability)
+- E8 rebuild equivalence per run/tolerance
+- snapshot reproducibility metadata coverage (`reader`, `policy`, `schema`, `run_id`)
+
+Run automatically from repo root:
+- `make phase5-audit`
