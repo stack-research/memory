@@ -17,6 +17,10 @@ From `stacks/`:
 
 Required environment comes from project root `.env` / `.env.local` (loaded by the stack tooling) and standard shell env for experiment runs.
 
+Lineage replay readers are selected with `AWS_LINEAGE_READER_BACKEND`:
+- `s3tables` (default)
+- `athena` (compatibility path)
+
 ## Experiments
 
 ### E1 - Trusted False Source vs Weak True Source

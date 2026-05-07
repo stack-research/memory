@@ -81,7 +81,7 @@ class AthenaLineageIngestionJob:
 
         quarantine_path = (
             f"s3://{self.cfg.lineage_ingress_bucket_name}/"
-            f"{self.cfg.lineage_ingress_prefix.rstrip('/')}/quarantine/"
+            f"{self.cfg.lineage_ingress_prefix.rstrip('/')}-quarantine/"
         )
 
         valid_rows_predicate = (

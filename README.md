@@ -122,6 +122,8 @@ This keeps the lineage envelope stable while we iterate on tighter S3 Tables can
 
 Current envelope includes `schema_version` and required core fields (`event_id`, `event_type`, `agent_id`, `stream_id`, `memory_id`, `event_time`, `payload`). Invalid envelopes are quarantined with explicit reason codes.
 
+Reader abstraction is now configurable via `AWS_LINEAGE_READER_BACKEND` (`s3tables` default, `athena` optional compatibility mode).
+
 ## Guiding principle
 
 Use biological ideas for **adaptive** behavior; use machines for **auditability**. Do not conflate the two.

@@ -1,65 +1,16 @@
 from __future__ import annotations
 
-import json
-import time
+import os
 from typing import Any
 
-from src.aws_session import make_session
 from src.config import load_config
 from src.embeddings import BedrockEmbeddings
 from src.ingestion.athena_ingestion import AthenaLineageIngestionJob
 from src.lineage_engine import LineageEngine
+from src.lineage_reader import build_lineage_reader
 from src.storage import LineageStorage
 from src.vectors import RecallVectors
 
-
-
-def _wait_for_query(athena: Any, query_execution_id: str) -> str:
-    while True:
-        resp = athena.get_query_execution(QueryExecutionId=query_execution_id)
-        state = resp["QueryExecution"]["Status"]["State"]
-        if state in {"SUCCEEDED", "FAILED", "CANCELLED"}:
-            return state
-        time.sleep(1)
-
-
-def _query_events(athena: Any, *, target_table_fqn: str, stream_id: str) -> list[dict[str, Any]]:
-    sql = (
-        "SELECT memory_id, event_type, payload, event_time "
-        f"FROM {target_table_fqn} "
-        f"WHERE stream_id = '{stream_id}' "
-        "ORDER BY event_time"
-    )
-    start = athena.start_query_execution(
-        QueryString=sql,
-        WorkGroup="memory-lab",
-        QueryExecutionContext={"Database": "memory_lab", "Catalog": "AwsDataCatalog"},
-    )
-    qid = start["QueryExecutionId"]
-    state = _wait_for_query(athena, qid)
-    if state != "SUCCEEDED":
-        raise RuntimeError(f"Athena query failed: {qid} state={state}")
-
-    rows: list[dict[str, Any]] = []
-    paginator = athena.get_paginator("get_query_results")
-    for page in paginator.paginate(QueryExecutionId=qid):
-        for row in page["ResultSet"]["Rows"]:
-            data = row.get("Data", [])
-            if len(data) < 4:
-                continue
-            # skip header row
-            if data[0].get("VarCharValue") == "memory_id":
-                continue
-            payload_raw = data[2].get("VarCharValue", "{}")
-            rows.append(
-                {
-                    "memory_id": data[0].get("VarCharValue", ""),
-                    "event_type": data[1].get("VarCharValue", ""),
-                    "payload": json.loads(payload_raw) if payload_raw else {},
-                    "event_time": data[3].get("VarCharValue", ""),
-                }
-            )
-    return rows
 
 
 def run() -> None:
@@ -69,7 +20,7 @@ def run() -> None:
     embedder = BedrockEmbeddings(cfg)
     lineage = LineageEngine(storage)
     ingestion = AthenaLineageIngestionJob(cfg)
-    athena = make_session(cfg).client("athena")
+    lineage_reader = build_lineage_reader(cfg)
 
     agent_id = "lab-agent-1"
     stream_id = "exp-e7"
@@ -120,11 +71,7 @@ def run() -> None:
     vectors.delete_memory_vectors([m["memory_id"] for m in memories])
 
     # replay from canonical lineage table
-    events = _query_events(
-        athena,
-        target_table_fqn=cfg.athena_target_table_fqn,
-        stream_id=stream_id,
-    )
+    events = lineage_reader.query_events(stream_id=stream_id)
     rebuilt: dict[str, dict[str, Any]] = {}
     source_memory_ids = {m["memory_id"] for m in memories}
     for event in events:
@@ -171,6 +118,7 @@ def run() -> None:
             "expected_count": len(expected),
             "replay_equal": equal,
             "ingestion_state": ingest_result.get("state"),
+            "lineage_reader_backend": os.environ.get("AWS_LINEAGE_READER_BACKEND", "s3tables"),
         },
     )
 
