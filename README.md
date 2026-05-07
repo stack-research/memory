@@ -43,7 +43,7 @@ A memory record is richer than content: claim, source, assertion/event time, con
 | E6 | Poisoning and spread / quarantine |
 | E7 | Audit replay—rebuild state from the log exactly |
 
-Implemented runners so far: `e1`, `e2`, `e3`, `e4` (see `src/experiments/README.md`).
+Implemented runners so far: `e1`, `e2`, `e3`, `e4`, `e5`, `e6`, `e7`, `e8` (see `src/experiments/README.md`).
 
 ## Success criteria
 
@@ -72,9 +72,14 @@ Concrete checks (v0):
 - `make exp-e2`
 - `make exp-e3`
 - `make exp-e4`
+- `make exp-e5`
+- `make exp-e6`
+- `make exp-e7`
+- `make exp-e8`
 - `make ingest`
 - `make show-tables`
 - `make e2-analysis`
+- `make e5-analysis`
 
 Override defaults as needed, e.g. `make deploy AWS_PROFILE=stack-research AWS_REGION=us-east-2`.
 

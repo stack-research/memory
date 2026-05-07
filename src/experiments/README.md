@@ -10,6 +10,10 @@ From `stacks/`:
 - `PYTHONPATH=.. uv run python -m src.run_experiment e2`
 - `PYTHONPATH=.. uv run python -m src.run_experiment e3`
 - `PYTHONPATH=.. uv run python -m src.run_experiment e4`
+- `PYTHONPATH=.. uv run python -m src.run_experiment e5`
+- `PYTHONPATH=.. uv run python -m src.run_experiment e6`
+- `PYTHONPATH=.. uv run python -m src.run_experiment e7`
+- `PYTHONPATH=.. uv run python -m src.run_experiment e8`
 
 Required environment comes from project root `.env` / `.env.local` (loaded by the stack tooling) and standard shell env for experiment runs.
 
@@ -72,6 +76,60 @@ Current behavior:
 - Seeds two conflicting claims with explicit contradiction metadata.
 - Emits `observed` and `contradicted` lineage events for both sides.
 - Runs repeated queries and logs accepted/rejected retrieval outcomes.
+
+### E5 - Sleep Promotion (Episodic -> Semantic)
+
+File: `e5_sleep_promotion.py`
+
+Purpose:
+- Promote repeated episodic traces into a semantic memory when thresholds are met.
+
+Current behavior:
+- Seeds 4 related episodic memories.
+- Evaluates promotion eligibility via access count and context variance.
+- Emits `snapshotted` promotion eligibility event.
+- If eligible, writes semantic vector and emits `promoted` plus linkage `mutated` events.
+
+### E6 - Poisoning Before Promotion
+
+File: `e6_poisoning_before_promotion.py`
+
+Purpose:
+- Block high-trust poisoned claims from promotion when support is weak and conflicts are high.
+
+Current behavior:
+- Seeds trusted false-ish claim plus weak contradictory signal.
+- Emits contradiction and risk snapshot events.
+- Quarantines poisoned memory before promotion.
+- Writes vector status as `quarantined` with safety override.
+
+### E7 - Replay Rebuild
+
+File: `e7_replay_rebuild.py`
+
+Purpose:
+- Prove materialized state can be reconstructed from canonical lineage.
+
+Current behavior:
+- Emits observed/mutated events for two memories.
+- Runs ingestion to canonical Athena table.
+- Deletes materialized vectors for those memories.
+- Replays canonical lineage rows and rebuilds memory state.
+- Rewrites vectors from rebuilt state and checks replay equality.
+
+### E8 - Vector Rebuild Equivalence
+
+File: `e8_vector_rebuild.py`
+
+Purpose:
+- Prove vector recall can be rebuilt from lineage with acceptable retrieval equivalence.
+
+Current behavior:
+- Seeds three memories and ingests lineage.
+- Records baseline top-3 recall for a query.
+- Deletes only this experiment's vectors.
+- Rebuilds vectors from canonical lineage and reruns recall.
+- Compares top-3 overlap and marks equivalent if overlap >= 2.
 
 Notes:
 - Lineage events are currently written as append-only JSON ingress objects in S3.

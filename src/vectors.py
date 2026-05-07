@@ -11,6 +11,15 @@ class RecallVectors:
         self.cfg = cfg
         self.client = make_session(cfg).client("s3vectors")
 
+    def delete_memory_vectors(self, keys: list[str]) -> None:
+        if not keys:
+            return
+        self.client.delete_vectors(
+            vectorBucketName=self.cfg.vector_bucket_name,
+            indexName=self.cfg.vector_index_name,
+            keys=keys,
+        )
+
     def put_memory_vector(self, *, key: str, vector: list[float], metadata: dict[str, Any]) -> None:
         self.client.put_vectors(
             vectorBucketName=self.cfg.vector_bucket_name,

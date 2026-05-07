@@ -5,7 +5,7 @@ AWS_REGION ?= us-east-2
 PYTHONPATH_ROOT := ..
 STACKS_DIR := stacks
 
-.PHONY: synth deploy exp-e1 exp-e2 exp-e3 exp-e4 ingest show-tables e2-analysis
+.PHONY: synth deploy exp-e1 exp-e2 exp-e3 exp-e4 exp-e5 exp-e6 exp-e7 exp-e8 ingest show-tables e2-analysis e5-analysis
 
 synth:
 	cd $(STACKS_DIR) && uv run cdk synth
@@ -25,6 +25,18 @@ exp-e3:
 exp-e4:
 	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.run_experiment e4
 
+exp-e5:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.run_experiment e5
+
+exp-e6:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.run_experiment e6
+
+exp-e7:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.run_experiment e7
+
+exp-e8:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.run_experiment e8
+
 ingest:
 	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.ingestion.run_ingestion
 
@@ -33,3 +45,6 @@ show-tables:
 
 e2-analysis:
 	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.run_sql_file ../src/experiments/sql/e2_drift_analysis.sql --database memory_lab --catalog AwsDataCatalog --workgroup memory-lab
+
+e5-analysis:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.run_sql_file ../src/experiments/sql/e5_promotion_analysis.sql --database memory_lab --catalog AwsDataCatalog --workgroup memory-lab

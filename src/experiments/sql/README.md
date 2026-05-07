@@ -17,3 +17,16 @@ Run in Athena (workgroup `memory-lab`) against:
 
 Or run automatically from repo root:
 - `make e2-analysis`
+
+## E5 Promotion Analysis
+
+File: `e5_promotion_analysis.sql`
+
+Covers:
+- E5 timeline
+- promotion gate snapshots (`snapshotted`)
+- semantic promotion record (`promoted`)
+- episodic linkage events (`mutated` with `derived_from` relation)
+
+Run automatically from repo root:
+- `make e5-analysis`
