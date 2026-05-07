@@ -30,3 +30,15 @@ Covers:
 
 Run automatically from repo root:
 - `make e5-analysis`
+
+## Phase 4 Policy Audit
+
+File: `phase4_policy_audit.sql`
+
+Covers:
+- policy audit field coverage (`policy_id`, `policy_version`, `policy_effective_at`)
+- controlled reason taxonomy usage for `rejected` and `quarantined`
+- recent spot-audit rows
+
+Run automatically from repo root:
+- `make phase4-audit`
