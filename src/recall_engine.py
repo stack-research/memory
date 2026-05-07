@@ -4,6 +4,7 @@ from .conflict_engine import contradiction_flag
 from .eligibility_engine import is_eligible, score_candidate
 from .embeddings import BedrockEmbeddings
 from .lineage_engine import LineageEngine
+from .policy import RejectionReason, RetrievalPolicy
 from .time_engine import decay_score
 from .vectors import RecallVectors
 
@@ -15,10 +16,12 @@ class RecallEngine:
         vectors: RecallVectors,
         embedder: BedrockEmbeddings,
         lineage: LineageEngine,
+        policy: RetrievalPolicy,
     ) -> None:
         self.vectors = vectors
         self.embedder = embedder
         self.lineage = lineage
+        self.policy = policy
 
     def retrieve(self, *, agent_id: str, stream_id: str, query: str, top_k: int = 10) -> dict:
         query_vec = self.embedder.embed_text(query)
@@ -51,17 +54,22 @@ class RecallEngine:
             )
             memory_id = hit.get("key", "unknown")
 
-            if is_eligible(s):
+            if is_eligible(s, threshold=self.policy.eligibility_threshold):
                 accepted.append({"memory_id": memory_id, "score": s})
                 self.lineage.emit(
                     event_type="recalled",
                     agent_id=agent_id,
                     stream_id=stream_id,
                     memory_id=memory_id,
-                    payload={"query": query, "eligibility_score": s},
+                    payload={
+                        "query": query,
+                        "eligibility_score": s,
+                        **self.policy.audit_fields(),
+                    },
                 )
             else:
-                rejected.append({"memory_id": memory_id, "score": s, "reason": "eligibility_below_threshold"})
+                reason = RejectionReason.ELIGIBILITY_BELOW_THRESHOLD.value
+                rejected.append({"memory_id": memory_id, "score": s, "reason": reason})
                 self.lineage.emit(
                     event_type="rejected",
                     agent_id=agent_id,
@@ -70,7 +78,8 @@ class RecallEngine:
                     payload={
                         "query": query,
                         "eligibility_score": s,
-                        "reason": "eligibility_below_threshold",
+                        "reason": reason,
+                        **self.policy.audit_fields(),
                     },
                 )
 

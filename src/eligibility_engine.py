@@ -13,5 +13,5 @@ def score_candidate(
     return relevance * trust * recency * reinforcement * consistency * safety
 
 
-def is_eligible(score: float, threshold: float = 0.2) -> bool:
+def is_eligible(score: float, *, threshold: float) -> bool:
     return score >= threshold

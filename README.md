@@ -124,6 +124,9 @@ Current envelope includes `schema_version` and required core fields (`event_id`,
 
 Reader abstraction is now configurable via `AWS_LINEAGE_READER_BACKEND` (`s3tables` default, `athena` optional compatibility mode).
 
+Retrieval and quarantine policy is configurable via env (`MEMORY_RETRIEVAL_POLICY_*`, `MEMORY_RETRIEVAL_ELIGIBILITY_THRESHOLD`, `MEMORY_QUARANTINE_RISK_THRESHOLD`).
+`recalled`/`rejected`/`quarantined` lineage events now carry policy audit fields (`policy_id`, `policy_version`, `policy_effective_at`).
+
 ## Guiding principle
 
 Use biological ideas for **adaptive** behavior; use machines for **auditability**. Do not conflate the two.

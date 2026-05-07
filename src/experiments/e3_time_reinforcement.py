@@ -71,7 +71,12 @@ def run() -> None:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=spaced_id,
-                payload={"hours_since_start": hours, "strategy": "spaced", "reinforcement_after": reinforcement_spaced},
+                payload={
+                    "hours_since_start": hours,
+                    "strategy": "spaced",
+                    "reinforcement_after": reinforcement_spaced,
+                    **cfg.retrieval_policy.audit_fields(),
+                },
             )
 
         score_spaced = _eligibility(

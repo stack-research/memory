@@ -21,6 +21,8 @@ Lineage replay readers are selected with `AWS_LINEAGE_READER_BACKEND`:
 - `s3tables` (default)
 - `athena` (compatibility path)
 
+Retrieval/quarantine policy is selected via env (`MEMORY_RETRIEVAL_POLICY_*`, `MEMORY_RETRIEVAL_ELIGIBILITY_THRESHOLD`, `MEMORY_QUARANTINE_RISK_THRESHOLD`).
+
 ## Experiments
 
 ### E1 - Trusted False Source vs Weak True Source

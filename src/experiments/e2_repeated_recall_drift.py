@@ -129,6 +129,7 @@ def run() -> None:
                 "query": ctx.query,
                 "top_hit": hits.get("vectors", [{}])[0],
                 "claim_before_mutation": current_claim,
+                **cfg.retrieval_policy.audit_fields(),
             },
         )
 

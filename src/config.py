@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from .policy import RetrievalPolicy, build_policy_id
+
 
 @dataclass(frozen=True)
 class AwsConfig:
@@ -19,6 +21,7 @@ class AwsConfig:
     vector_bucket_name: str
     vector_index_name: str
     embedding_model_id: str
+    retrieval_policy: RetrievalPolicy
 
 
 
@@ -73,5 +76,16 @@ def load_config() -> AwsConfig:
         vector_index_name=os.environ.get("AWS_S3_VECTOR_INDEX_NAME", "memories-v1"),
         embedding_model_id=os.environ.get(
             "BEDROCK_EMBEDDING_MODEL_ID", "amazon.titan-embed-text-v2:0"
+        ),
+        retrieval_policy=RetrievalPolicy(
+            policy_id=build_policy_id(
+                name=os.environ.get("MEMORY_RETRIEVAL_POLICY_NAME", "retrieval-default"),
+                version=os.environ.get("MEMORY_RETRIEVAL_POLICY_VERSION", "1.0.0"),
+                effective_at=os.environ.get("MEMORY_RETRIEVAL_POLICY_EFFECTIVE_AT", "2026-05-07T00:00:00Z"),
+            ),
+            version=os.environ.get("MEMORY_RETRIEVAL_POLICY_VERSION", "1.0.0"),
+            effective_at=os.environ.get("MEMORY_RETRIEVAL_POLICY_EFFECTIVE_AT", "2026-05-07T00:00:00Z"),
+            eligibility_threshold=float(os.environ.get("MEMORY_RETRIEVAL_ELIGIBILITY_THRESHOLD", "0.2")),
+            quarantine_risk_threshold=float(os.environ.get("MEMORY_QUARANTINE_RISK_THRESHOLD", "0.8")),
         ),
     )

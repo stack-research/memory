@@ -3,6 +3,7 @@ from __future__ import annotations
 from src.config import load_config
 from src.embeddings import BedrockEmbeddings
 from src.lineage_engine import LineageEngine
+from src.policy import QuarantineReason
 from src.storage import LineageStorage
 from src.vectors import RecallVectors
 
@@ -84,7 +85,7 @@ def run() -> None:
 
     # Pre-promotion gate: block poisoned candidate when trust is high but support is weak/conflicted
     risk_score = 0.93
-    should_quarantine = risk_score > 0.8
+    should_quarantine = risk_score > cfg.retrieval_policy.quarantine_risk_threshold
 
     lineage.emit(
         event_type="snapshotted",
@@ -97,6 +98,7 @@ def run() -> None:
             "support_level": "low",
             "conflict_density": "high",
             "should_quarantine": should_quarantine,
+            **cfg.retrieval_policy.audit_fields(),
         },
     )
 
@@ -107,9 +109,10 @@ def run() -> None:
             stream_id=stream_id,
             memory_id=poison_id,
             payload={
-                "reason": "high_trust_low_support_conflict_cluster",
+                "reason": QuarantineReason.HIGH_TRUST_LOW_SUPPORT_CONFLICT_CLUSTER.value,
                 "eligibility_override": 0.0,
                 "requires_release_event": True,
+                **cfg.retrieval_policy.audit_fields(),
             },
         )
         vectors.put_memory_vector(

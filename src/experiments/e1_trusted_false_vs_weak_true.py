@@ -15,7 +15,7 @@ def run() -> None:
     vectors = RecallVectors(cfg)
     embedder = BedrockEmbeddings(cfg)
     lineage = LineageEngine(storage)
-    recall = RecallEngine(vectors=vectors, embedder=embedder, lineage=lineage)
+    recall = RecallEngine(vectors=vectors, embedder=embedder, lineage=lineage, policy=cfg.retrieval_policy)
 
     agent_id = "lab-agent-1"
     stream_id = "exp-e1"
