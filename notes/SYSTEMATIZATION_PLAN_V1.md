@@ -8,16 +8,15 @@ Systematize the current AWS-native memory lab from successful mechanics into dur
 
 ## Phase 1: Stabilize data contracts (now)
 
-1. Freeze event envelope schema (`event_id`, `agent_id`, `stream_id`, `event_type`, `memory_id`, `event_time`, `payload`, `parent_event_id`).
-2. Add schema version field (`schema_version`).
-3. Enforce required fields at write time + quarantine reason taxonomy.
+1. Freeze event envelope schema (`event_id`, `event_type`, `agent_id`, `stream_id`, `memory_id`, `event_time`, `schema_version`, `payload`, `actor_class`, `source_class`, `parent_event_id`).
+2. Enforce required fields at write time + quarantine reason taxonomy.
 
 ### Checks
 
-- [ ] Every emitted event includes all required envelope fields.
-- [ ] `schema_version` is present on all new events.
-- [ ] Invalid events are rejected from canonical path and land in quarantine with explicit reason codes.
-- [ ] Envelope format is documented in code and specs.
+- [x] Every emitted event includes all required envelope fields.
+- [x] `schema_version` is present on all new events.
+- [x] Invalid events are rejected from canonical path and land in quarantine with explicit reason codes.
+- [x] Envelope format is documented in code and specs.
 
 ---
 
@@ -34,9 +33,11 @@ Systematize the current AWS-native memory lab from successful mechanics into dur
 
 ### Checks
 
-- [ ] Canonical writes go to S3 Tables (not only Athena external canonical table).
-- [ ] Re-running ingestion on the same input does not duplicate canonical events.
+- [x] Canonical writes go to S3 Tables (not only Athena external canonical table).
+- [x] Re-running ingestion on the same input does not duplicate canonical events.
 - [ ] Ingest metrics are emitted (`processed`, `deduped`, `quarantined`, `failed`).
+  - Current implementation emits `processed_count`, `canonical_inserted_count`, `quarantined_count`, `failed_statements`.
+  - `deduped` is derivable but not emitted as an explicit counter yet.
 - [ ] Canonical row count matches expected unique `event_id` count from ingress minus quarantined records.
 
 ---
@@ -51,9 +52,9 @@ Systematize the current AWS-native memory lab from successful mechanics into dur
 
 ### Checks
 
-- [ ] Experiments run unchanged while toggling reader backend.
-- [ ] E7 replay output equality is preserved across both readers for identical input.
-- [ ] Reader selection is explicit via config/env and logged per run.
+- [x] Experiments run unchanged while toggling reader backend.
+- [x] E7 replay output equality is preserved across both readers for identical input.
+- [x] Reader selection is explicit via config/env and logged per run.
 
 ---
 
@@ -65,10 +66,10 @@ Systematize the current AWS-native memory lab from successful mechanics into dur
 
 ### Checks
 
-- [ ] No retrieval/quarantine threshold is hardcoded in experiment/engine logic.
-- [ ] Every `recalled`/`rejected`/`quarantined` event includes `policy_id`.
-- [ ] Rejection reasons come from controlled enum values.
-- [ ] Policy changes are auditable by version and effective timestamp.
+- [x] No retrieval/quarantine threshold is hardcoded in engine logic.
+- [x] Every `recalled`/`rejected`/`quarantined` event includes `policy_id`.
+- [x] Rejection reasons come from controlled enum values.
+- [x] Policy changes are auditable by version and effective timestamp.
 
 ---
 
@@ -80,10 +81,10 @@ Systematize the current AWS-native memory lab from successful mechanics into dur
 
 ### Checks
 
-- [ ] Re-running E7 on same stream/run remains stable and deterministic.
-- [ ] E8 rebuild equivalence check passes within configured tolerance.
-- [ ] `make lab-regression` runs E7/E8 and fails fast on mismatch.
-- [ ] Snapshot events include reproducibility metadata (reader, policy, schema version).
+- [x] Re-running E7 on same stream/run remains stable and deterministic.
+- [x] E8 rebuild equivalence check passes within configured tolerance.
+- [x] `make lab-regression` runs E7/E8 and fails fast on mismatch.
+- [x] Snapshot events include reproducibility metadata (reader, policy, schema version).
 
 ---
 
@@ -95,10 +96,27 @@ Systematize the current AWS-native memory lab from successful mechanics into dur
 
 ### Checks
 
-- [ ] Events contain explicit source/actor class fields for security analysis.
-- [ ] Cross-stream or cross-agent reference attempts are observable in lineage.
-- [ ] Suspicion tagging is deterministic and queryable.
-- [ ] Quarantine events include machine-readable threat/suspicion labels.
+- [x] Events contain explicit source/actor class fields for security analysis.
+- [x] Cross-stream or cross-agent reference attempts are observable in lineage.
+- [x] Suspicion tagging is deterministic and queryable.
+- [x] Quarantine events include machine-readable threat/suspicion labels.
+
+## Phase 6.5: IAM hardening and blast-radius constraints
+
+1. Separate runtime principals by function (experiment/engine, ingestion, replay/audit, deploy).
+2. Enforce least-privilege policies per principal and resource path.
+3. Add explicit deny guardrails for destructive or out-of-scope actions.
+4. Require workgroup/catalog scoping for Athena query execution.
+5. Validate with negative-path tests (must-fail checks) in addition to happy-path tests.
+
+### Checks
+
+- [ ] Experiment principal cannot write canonical lineage table directly.
+- [ ] Replay/audit principal cannot mutate vectors or ingress data.
+- [ ] Ingestion principal can read ingress, write quarantine, and insert canonical rows only.
+- [ ] Runtime principals cannot delete lineage ingress/quarantine evidence objects.
+- [ ] Athena permissions are constrained to approved workgroup/catalog/database.
+- [ ] IAM hardening plan is documented and exercised (`notes/IAM_HARDENING_PLAN.md`).
 
 ---
 

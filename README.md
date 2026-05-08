@@ -1,18 +1,59 @@
-# Memory
+# Memory Lab
 
-An experimental **memory lab**-not a production memory product. The goal is to probe how synthetic memory behaves when it must **form and revise beliefs**, not merely **retrieve** text in plausible order.
+An experimental AWS-native memory lab — not a production memory product.
 
-## Core thesis
+The goal is to test how synthetic memory behaves when it must **form and revise beliefs**, not merely retrieve text in plausible order.
 
-Memory is not storage. It is a **control system**: past signals gate how strongly they may influence future computation.
+Security posture is explicit: **constrain blast radius** at every layer (runtime roles, ingestion roles, replay/audit roles, storage paths, and query surfaces).
 
-## What this lab is
+## Why this project exists
 
-A small AWS-native lab for testing memory as belief control.
+Not to build “better retrieval,” but to test a stronger claim:
 
-- Cognitive behavior can change.
-- Lineage must stay append-only and replayable.
-- Canonical lineage table: `memory_lab.memory_events_v4`.
+> **Memory should be treated as a belief-control system, not a fact store.**
+
+That means:
+- recall is reconstruction,
+- reconstructed output is belief (not reality),
+- and what matters is whether memory is **eligible to influence future action**.
+
+## Core concepts
+
+1. **Memory ≠ reality**
+   - Reality is observer-independent.
+   - Memory is internal, lossy, mutable, and context-conditioned.
+   - Vocabulary must distinguish: `reality`, `evidence`, `claim`, `memory`, `belief`.
+
+2. **The frontier is eligibility, not storage**
+   - Top-k retrieval alone is epistemically unsafe.
+   - Influence is gated by policy dimensions:
+     - relevance
+     - trust
+     - recency
+     - reinforcement
+     - consistency
+     - safety
+
+3. **Dual-plane design is the key machine advantage**
+   - **Cognitive plane** can mutate (decay, consolidation, reconsolidation, promotion, suppression).
+   - **Lineage plane** must remain immutable, append-only, and replayable.
+   - Project invariant:
+     > **memory may mutate; lineage must not**
+
+4. **Poisoning is a first-class threat**
+   - High-trust falsehoods can dominate if trust is conflated with truth.
+   - Quarantine, suspicion labels, and rejection reasons must be deterministic and machine-readable.
+
+5. **Belief health is adaptive, not maximal retention**
+   - Healthy memory = remember enough to act, forget enough to stay plastic, distrust enough to resist capture.
+
+## Non-negotiable invariants
+
+1. Memory behavior can change; lineage history must not be rewritten.
+2. S3 Tables is canonical lineage (`memory_lab.memory_events_v4`).
+3. S3 Vectors is a rebuildable recall index, not source of truth.
+4. Contradictions are not auto-resolved.
+5. IAM and data-plane permissions must **constrain blast radius** by default (least privilege, explicit denies, role separation).
 
 ## Architecture and flow
 
@@ -30,6 +71,14 @@ flowchart TD
     D --> H[Replay and audit SQL]
 ```
 
+## Event envelope (required)
+
+Every event must include:
+- `event_id`, `event_type`, `agent_id`, `stream_id`, `memory_id`
+- `event_time`, `schema_version`, `payload`
+- `actor_class`, `source_class`
+- `parent_event_id` (nullable)
+
 ## Experiments
 
 Implemented runners: `e1` through `e8`.
@@ -42,24 +91,38 @@ See:
 
 The lab should demonstrate:
 
-1. Belief change from experience (not retrieval order artifacts).
-2. Conflict persistence without auto-collapse.
-3. Quarantine handling for suspicious/poisoned memory.
+1. Belief change from experience (not retrieval-order artifacts).
+2. Conflict persistence without forced collapse.
+3. Quarantine handling for suspicious or poisoned memory.
 4. Replay/rebuild consistency from canonical lineage.
+
+## Quick operations
+
+Use `Makefile` targets from repo root:
+
+- `make synth` / `make deploy`
+- `make exp-e1` … `make exp-e8`
+- `make ingest-preflight` (schema/projection check)
+- `make ingest`
+- `make phase4-audit` / `make phase5-audit` / `make phase6-audit`
+- `make lab-regression`
 
 ## Working notes
 
-- Use `Makefile` for command options.
-- Use `.env` / `.env.example` for runtime defaults.
-- Run `make ingest-preflight` before ingestion to verify canonical schema alignment.
+- Runtime defaults come from `.env` / `.env.example`.
+- Python execution/deps use `uv`.
+- Prefer replay-first, auditable changes.
+- Constrain blast radius in every change: separate principals, scope permissions to exact resources/prefixes, and add explicit deny where possible.
 
 ## Key docs
 
 - `AGENTS.md`
 - `specs/ENGINEERING_SPEC.md`
 - `notes/SYSTEMATIZATION_PLAN_V1.md`
+- `notes/IAM_HARDENING_PLAN.md`
+- `notes/IAM_IMPLEMENTATION_CHECKLIST.md`
 - `src/experiments/sql/`
 
 ## Guiding principle
 
-Use biological inspiration for adaptation, and machine guarantees for auditability.
+> Use biological inspiration for adaptation, machine guarantees for auditability, and least-privilege controls to constrain blast radius.
