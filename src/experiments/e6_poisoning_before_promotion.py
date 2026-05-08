@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.config import load_config
 from src.embeddings import BedrockEmbeddings
 from src.lineage_engine import LineageEngine
-from src.policy import QuarantineReason
+from src.policy import QuarantineReason, SuspicionTag, ThreatLabel
 from src.storage import LineageStorage
 from src.vectors import RecallVectors
 
@@ -85,7 +85,15 @@ def run() -> None:
 
     # Pre-promotion gate: block poisoned candidate when trust is high but support is weak/conflicted
     risk_score = 0.93
+    support_level = "low"
+    conflict_density = "high"
     should_quarantine = risk_score > cfg.retrieval_policy.quarantine_risk_threshold
+    suspicion_tags = [
+        SuspicionTag.GOAL_HIJACK_SUSPECTED.value
+        if support_level == "low" and conflict_density == "high"
+        else SuspicionTag.CROSS_SCOPE_INFLUENCE_ATTEMPT.value
+    ]
+    threat_labels = [ThreatLabel.INFLUENCE_MANIPULATION.value]
 
     lineage.emit(
         event_type="snapshotted",
@@ -95,8 +103,10 @@ def run() -> None:
         payload={
             "promotion_candidate": True,
             "risk_score": risk_score,
-            "support_level": "low",
-            "conflict_density": "high",
+            "support_level": support_level,
+            "conflict_density": conflict_density,
+            "suspicion_tags": suspicion_tags,
+            "threat_labels": threat_labels,
             "should_quarantine": should_quarantine,
             **cfg.retrieval_policy.audit_fields(),
         },
@@ -112,6 +122,8 @@ def run() -> None:
                 "reason": QuarantineReason.HIGH_TRUST_LOW_SUPPORT_CONFLICT_CLUSTER.value,
                 "eligibility_override": 0.0,
                 "requires_release_event": True,
+                "suspicion_tags": suspicion_tags,
+                "threat_labels": threat_labels,
                 **cfg.retrieval_policy.audit_fields(),
             },
         )

@@ -1,48 +1,48 @@
 # AGENTS
 
-This file sets working rules for agents operating in this repository.
+Quick start rules for coding agents in this repo.
 
-## Purpose
+## Mission
 
-Build an experimental memory lab that tests reality formation, not just retrieval ordering. This is AWS-native only (no local storage backend).
+Build and maintain a small AWS-native memory lab where:
+- cognitive memory can mutate
+- lineage is immutable, append-only, and replayable
 
-## Core Model
+## Non-negotiable invariants
 
-- Memory is a control system, not a storage bucket.
-- Two planes:
-  - Cognitive plane: mutable, adaptive, reconstructive.
-  - Audit lineage plane: immutable, append-only, replayable.
-- Invariant: cognitive state may mutate; lineage must not.
+1. Memory behavior can change; lineage history must not be rewritten.
+2. S3 Tables is canonical lineage (`memory_lab.memory_events_v4`).
+3. S3 Vectors is a rebuildable recall index, not source of truth.
+4. Do not auto-resolve contradictions.
 
-## Architecture Boundaries
+## Current data flow
 
-S3 Tables are canonical lineage.
-S3 Vectors are rebuildable recall indexes.
-Athena is the audit microscope.
-IAM is the v0 boundary.
+1. Engine/experiments write JSON lineage events to S3 ingress.
+2. Athena ingestion validates into:
+   - `lineage_events_raw` (validatable intake)
+   - `lineage_events_quarantine` (invalid records)
+3. Valid rows are inserted into canonical S3 Tables (`AWS_ATHENA_TARGET_TABLE_FQN`, default `memory_lab.memory_events_v4`).
 
-Current lab ingestion path (explicit temporary simplification):
-- Engine code appends lineage events as JSON objects to the ingress S3 bucket (`AWS_S3_LINEAGE_INGRESS_BUCKET_NAME`).
-- Event envelope is required to include: `event_id`, `event_type`, `agent_id`, `stream_id`, `memory_id`, `event_time`, `schema_version`, `payload`, `parent_event_id`.
-- Athena ingestion job builds/uses `lineage_events_raw` and `lineage_events_quarantine`.
-- Athena ingestion writes validated rows to `AWS_ATHENA_TARGET_TABLE_FQN` (default `memory_lab.memory_events`).
-- Quarantine reason taxonomy includes: `missing_required_field`, `unsupported_schema_version`, `invalid_event_time_format`, `unknown_validation_failure`.
-- Keep event envelope stable so we can later tighten canonical write path directly into S3 Tables-managed lineage.
+## Required event envelope
 
-## Retrieval and Reality Safety
+Every new event must include:
+- `event_id`, `event_type`, `agent_id`, `stream_id`, `memory_id`
+- `event_time`, `schema_version`, `payload`
+- `actor_class`, `source_class`
+- `parent_event_id` (nullable)
 
-- Do not auto-resolve contradictions.
-- Quarantine suspicious or poisoned memories before promotion.
-- Use eligibility gating before memory can influence output:
+## Safety + policy
+
+- Apply eligibility gating before influence:
   - relevance * trust * recency * reinforcement * consistency * safety
+- Quarantine suspicious/poisoned memory before promotion.
+- Keep rejection/quarantine reasons machine-readable and deterministic.
 
-## Operational Guidance
+## Working conventions
 
-- use `uv` for Python environment and dependency management in this project
-- Prefer simple, auditable flows over premature optimization.
-- Design for replay, traceability, and rebuildability first.
-- AWS CLI/CDK/SDK interaction should use the aws profile `stack-research`.
-- The AWS CDK should be used for infrastructure as a service.
-- The AWS SDK for Python should be used to interact with services. Avoid redundant API Gateway/Lambda custom APIs.
-- Amazon Bedrock for models and embeddings
-- ASCII printable characters only when modifying AWS CDK strings
+- Use `uv` for Python env/deps and execution.
+- Use AWS profile `stack-research` and region from env.
+- Prefer simple, auditable, replay-first changes.
+- Use AWS CDK for infra changes.
+- Use AWS SDK for Python for service interaction.
+- Keep AWS CDK string edits ASCII printable only.

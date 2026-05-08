@@ -13,7 +13,7 @@ Covers:
 - aggregate drift summary
 
 Run in Athena (workgroup `memory-lab`) against:
-- `memory_lab.memory_events` (default)
+- `memory_lab.memory_events_v4` (default)
 
 Or run automatically from repo root:
 - `make e2-analysis`
@@ -54,3 +54,15 @@ Covers:
 
 Run automatically from repo root:
 - `make phase5-audit`
+
+## Phase 6 Attack-Surface Prep Audit
+
+File: `phase6_attack_surface_audit.sql`
+
+Covers:
+- actor/source class coverage on events
+- cross-scope influence attempt observability
+- quarantine suspicion/threat label coverage
+
+Run automatically from repo root:
+- `make phase6-audit`

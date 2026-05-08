@@ -4,7 +4,7 @@ from .conflict_engine import contradiction_flag
 from .eligibility_engine import is_eligible, score_candidate
 from .embeddings import BedrockEmbeddings
 from .lineage_engine import LineageEngine
-from .policy import RejectionReason, RetrievalPolicy
+from .policy import RejectionReason, RetrievalPolicy, SuspicionTag, ThreatLabel
 from .time_engine import decay_score
 from .vectors import RecallVectors
 
@@ -28,8 +28,6 @@ class RecallEngine:
         response = self.vectors.query(
             vector=query_vec,
             top_k=top_k,
-            agent_id=agent_id,
-            stream_id=stream_id,
         )
 
         accepted: list[dict] = []
@@ -37,6 +35,33 @@ class RecallEngine:
 
         for hit in response.get("vectors", []):
             metadata = hit.get("metadata", {})
+            metadata_agent_id = metadata.get("agent_id")
+            metadata_stream_id = metadata.get("stream_id")
+            memory_id = hit.get("key", "unknown")
+
+            if metadata_agent_id not in {None, agent_id} or metadata_stream_id not in {None, stream_id}:
+                reason = RejectionReason.CROSS_SCOPE_REFERENCE_ATTEMPT.value
+                rejected.append({"memory_id": memory_id, "score": 0.0, "reason": reason})
+                self.lineage.emit(
+                    event_type="rejected",
+                    agent_id=agent_id,
+                    stream_id=stream_id,
+                    memory_id=memory_id,
+                    actor_class="retrieval_engine",
+                    source_class="vector_index",
+                    payload={
+                        "query": query,
+                        "eligibility_score": 0.0,
+                        "reason": reason,
+                        "candidate_agent_id": metadata_agent_id,
+                        "candidate_stream_id": metadata_stream_id,
+                        "suspicion_tags": [SuspicionTag.CROSS_SCOPE_INFLUENCE_ATTEMPT.value],
+                        "threat_labels": [ThreatLabel.SCOPE_ESCAPE_ATTEMPT.value],
+                        **self.policy.audit_fields(),
+                    },
+                )
+                continue
+
             relevance = 1.0 - float(hit.get("distance", 1.0))
             trust = float(metadata.get("source_trust", 0.5))
             recency = decay_score(hours_since_last_reinforced=float(metadata.get("hours_stale", 0.0)))
@@ -52,8 +77,6 @@ class RecallEngine:
                 consistency=consistency,
                 safety=safety,
             )
-            memory_id = hit.get("key", "unknown")
-
             if is_eligible(s, threshold=self.policy.eligibility_threshold):
                 accepted.append({"memory_id": memory_id, "score": s})
                 self.lineage.emit(
@@ -61,6 +84,8 @@ class RecallEngine:
                     agent_id=agent_id,
                     stream_id=stream_id,
                     memory_id=memory_id,
+                    actor_class="retrieval_engine",
+                    source_class="vector_index",
                     payload={
                         "query": query,
                         "eligibility_score": s,
@@ -75,6 +100,8 @@ class RecallEngine:
                     agent_id=agent_id,
                     stream_id=stream_id,
                     memory_id=memory_id,
+                    actor_class="retrieval_engine",
+                    source_class="vector_index",
                     payload={
                         "query": query,
                         "eligibility_score": s,

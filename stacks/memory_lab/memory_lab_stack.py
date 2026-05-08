@@ -21,7 +21,7 @@ class MemoryLabStack(Stack):
         if not table_bucket_name:
             raise ValueError("AWS_S3_TABLE_BUCKET_NAME must be set")
 
-        table_name = os.environ.get("AWS_S3_TABLE_NAME", "memory_events")
+        table_name = os.environ.get("AWS_S3_TABLE_NAME", "memory_events_v4")
         table_namespace = os.environ.get("AWS_S3_TABLE_NAMESPACE", "memory_lab")
 
         ingress_bucket_name = os.environ.get("AWS_S3_LINEAGE_INGRESS_BUCKET_NAME")
@@ -41,6 +41,7 @@ class MemoryLabStack(Stack):
             vector_bucket_name=vector_bucket_name,
         )
 
+        # Create a vector index for the vector bucket.
         vector_index = s3vectors.CfnIndex(
             self,
             "RecallVectorIndex",
@@ -52,12 +53,14 @@ class MemoryLabStack(Stack):
         )
         vector_index.add_dependency(vector_bucket)
 
+        # Create a table bucket for the lineage table.
         table_bucket = s3tables.CfnTableBucket(
             self,
             "LineageTableBucket",
             table_bucket_name=table_bucket_name,
         )
 
+        # Create a namespace for the lineage table.
         lineage_namespace = s3tables.CfnNamespace(
             self,
             "LineageNamespace",
@@ -66,6 +69,7 @@ class MemoryLabStack(Stack):
         )
         lineage_namespace.add_dependency(table_bucket)
 
+        # Create a table for the lineage table.
         lineage_table = s3tables.CfnTable(
             self,
             "LineageTable",
@@ -82,6 +86,8 @@ class MemoryLabStack(Stack):
                         s3tables.CfnTable.SchemaFieldProperty(name="event_type", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="memory_id", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="payload", type="string", required=False),
+                        s3tables.CfnTable.SchemaFieldProperty(name="actor_class", type="string", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="source_class", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="event_time", type="timestamp", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="schema_version", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="parent_event_id", type="string", required=False),
@@ -92,6 +98,8 @@ class MemoryLabStack(Stack):
         )
         lineage_table.add_dependency(lineage_namespace)
 
+        # This is a temporary simplification for v0 labs.
+        # TODO: remove this bucket and tighten the canonical write path directly into S3 Tables-managed lineage.
         ingress_bucket = s3.Bucket(
             self,
             "LineageIngressBucket",
@@ -103,6 +111,7 @@ class MemoryLabStack(Stack):
             removal_policy=RemovalPolicy.RETAIN,
         )
 
+        # Create a results bucket for the Athena queries.
         athena_results_bucket = s3.Bucket(
             self,
             "AthenaResultsBucket",
@@ -113,6 +122,7 @@ class MemoryLabStack(Stack):
             removal_policy=RemovalPolicy.RETAIN,
         )
 
+        # Create a database for the Athena queries.
         glue_db = glue.CfnDatabase(
             self,
             "MemoryLabAthenaDatabase",
@@ -123,6 +133,7 @@ class MemoryLabStack(Stack):
             ),
         )
 
+        # Create a workgroup for the Athena queries.
         athena_workgroup = athena.CfnWorkGroup(
             self,
             "MemoryLabAthenaWorkgroup",

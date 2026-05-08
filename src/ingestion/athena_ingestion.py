@@ -90,6 +90,8 @@ class AthenaLineageIngestionJob:
             "AND event_type IS NOT NULL "
             "AND memory_id IS NOT NULL "
             "AND event_time IS NOT NULL "
+            "AND actor_class IS NOT NULL "
+            "AND source_class IS NOT NULL "
             "AND schema_version = '1.0' "
             "AND try(from_iso8601_timestamp(event_time)) IS NOT NULL"
         )
@@ -116,6 +118,8 @@ class AthenaLineageIngestionJob:
                     "event_time string,"
                     "schema_version string,"
                     "parent_event_id string,"
+                    "actor_class string,"
+                    "source_class string,"
                     "payload string"
                     ") "
                     "ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe' "
@@ -161,6 +165,8 @@ class AthenaLineageIngestionJob:
                     "event_type,"
                     "memory_id,"
                     "payload,"
+                    "actor_class,"
+                    "source_class,"
                     "CAST(from_iso8601_timestamp(event_time) AS timestamp) AS event_time,"
                     "schema_version,"
                     "parent_event_id "
@@ -181,9 +187,9 @@ class AthenaLineageIngestionJob:
                     "INSERT INTO "
                     f"{quarantine_table} "
                     "SELECT "
-                    "json_format(CAST(row(event_id, event_type, agent_id, stream_id, memory_id, event_time, schema_version, parent_event_id, payload) AS JSON)),"
+                    "json_format(CAST(row(event_id, event_type, agent_id, stream_id, memory_id, event_time, schema_version, parent_event_id, actor_class, source_class, payload) AS JSON)),"
                     "CASE "
-                    "WHEN event_id IS NULL OR agent_id IS NULL OR event_type IS NULL OR memory_id IS NULL OR event_time IS NULL OR schema_version IS NULL THEN 'missing_required_field' "
+                    "WHEN event_id IS NULL OR agent_id IS NULL OR event_type IS NULL OR memory_id IS NULL OR event_time IS NULL OR schema_version IS NULL OR actor_class IS NULL OR source_class IS NULL THEN 'missing_required_field' "
                     "WHEN schema_version <> '1.0' THEN 'unsupported_schema_version' "
                     "WHEN try(from_iso8601_timestamp(event_time)) IS NULL THEN 'invalid_event_time_format' "
                     "ELSE 'unknown_validation_failure' END,"
@@ -195,6 +201,8 @@ class AthenaLineageIngestionJob:
                     "OR memory_id IS NULL "
                     "OR event_time IS NULL "
                     "OR schema_version IS NULL "
+                    "OR actor_class IS NULL "
+                    "OR source_class IS NULL "
                     "OR schema_version <> '1.0' "
                     "OR try(from_iso8601_timestamp(event_time)) IS NULL"
                 ),
@@ -210,6 +218,36 @@ class AthenaLineageIngestionJob:
                 f"got '{target_table_fqn}'"
             )
         return parts[0], parts[1]
+
+    def _target_table_columns(self, *, catalog: str, database: str, table: str) -> list[str]:
+        qid = self._start(
+            (
+                "SELECT column_name "
+                "FROM information_schema.columns "
+                f"WHERE table_schema = '{database}' "
+                f"AND table_name = '{table}' "
+                "ORDER BY ordinal_position"
+            ),
+            database="information_schema",
+            catalog=catalog,
+        )
+        state = self._wait(qid)
+        if state != "SUCCEEDED":
+            raise RuntimeError(f"Failed to inspect target table schema: {catalog}.{database}.{table}")
+
+        resp = self.athena.get_query_results(QueryExecutionId=qid)
+        rows = resp.get("ResultSet", {}).get("Rows", [])
+        columns: list[str] = []
+        for row in rows[1:]:
+            data = row.get("Data", [])
+            if not data:
+                continue
+            value = data[0].get("VarCharValue")
+            if value:
+                columns.append(value)
+        if not columns:
+            raise RuntimeError(f"No columns found for target table: {catalog}.{database}.{table}")
+        return columns
 
     def _wait(self, query_execution_id: str) -> str:
         while True:
@@ -267,4 +305,4 @@ class AthenaLineageIngestionJob:
     def _target_table_fqn() -> str:
         import os
 
-        return os.environ.get("AWS_ATHENA_TARGET_TABLE_FQN", "memory_lab.memory_events")
+        return os.environ.get("AWS_ATHENA_TARGET_TABLE_FQN", "memory_lab.memory_events_v4")

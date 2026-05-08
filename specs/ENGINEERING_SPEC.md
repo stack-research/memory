@@ -48,6 +48,33 @@ Lineage plane must not.
 
 ## AWS Architecture
 
+### Read/Write/Query flow (v0 currently implemented)
+
+```mermaid
+flowchart TD
+    W1[LineageEngine.emit] --> W2[S3 ingress objects\nappend-only JSON]
+    W2 --> W3[Athena raw external table\nAwsDataCatalog.memory_lab.lineage_events_raw]
+    W3 -->|validate + dedupe| W4[S3 Tables canonical lineage\ns3tablescatalog/.../memory_events_v4]
+    W3 -->|invalid rows| W5[Quarantine table\nAwsDataCatalog.memory_lab.lineage_events_quarantine]
+```
+
+```mermaid
+flowchart LR
+    R1[Recall/eligibility runtime] --> R2[S3 Vectors query candidates]
+    R1 --> R3[Lineage emit recalled/rejected events -> ingress]
+    A1[Ingestion + envelope audits] --> A2[AwsDataCatalog raw/quarantine]
+    A3[Replay/history/audit questions] --> A4[S3 Tables canonical]
+```
+
+### Table roles
+
+- `AwsDataCatalog.memory_lab.lineage_events_raw`:
+  ingest evidence surface; may include mixed historical schema rows.
+- `AwsDataCatalog.memory_lab.lineage_events_quarantine`:
+  invalid envelope evidence with machine-readable reason taxonomy.
+- `s3tablescatalog/<bucket>.memory_lab.memory_events_v*`:
+  canonical lineage history for replay and belief audit.
+
 ### Required v0 Services
 
 - Amazon S3 Vectors
@@ -81,6 +108,10 @@ Do not introduce it in v0 unless one of those needs is explicit.
 ### 1. Canonical Lineage Store
 
 Storage: S3 Tables
+
+Migration note:
+- If canonical schema adds envelope fields (for example `actor_class`, `source_class`), create a new canonical table version (`memory_events_vN`) and perform explicit backfill + cutover.
+- Do not assume raw/audit table schema and canonical table schema are identical during migration windows.
 
 Table bucket: `AWS_S3_TABLE_BUCKET_NAME`
 

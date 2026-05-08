@@ -64,8 +64,8 @@ def load_config() -> AwsConfig:
         profile=os.environ.get("AWS_PROFILE"),
         table_bucket_name=os.environ["AWS_S3_TABLE_BUCKET_NAME"],
         table_namespace=os.environ.get("AWS_S3_TABLE_NAMESPACE", "memory_lab"),
-        table_name=os.environ.get("AWS_S3_TABLE_NAME", "memory_events"),
-        athena_target_table_fqn=os.environ.get("AWS_ATHENA_TARGET_TABLE_FQN", "memory_lab.memory_events"),
+        table_name=os.environ.get("AWS_S3_TABLE_NAME", "memory_events_v4"),
+        athena_target_table_fqn=os.environ.get("AWS_ATHENA_TARGET_TABLE_FQN", "memory_lab.memory_events_v4"),
         athena_s3tables_catalog=os.environ.get(
             "AWS_ATHENA_S3TABLES_CATALOG",
             f"s3tablescatalog/{os.environ['AWS_S3_TABLE_BUCKET_NAME']}",

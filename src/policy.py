@@ -6,10 +6,21 @@ from enum import StrEnum
 
 class RejectionReason(StrEnum):
     ELIGIBILITY_BELOW_THRESHOLD = "eligibility_below_threshold"
+    CROSS_SCOPE_REFERENCE_ATTEMPT = "cross_scope_reference_attempt"
 
 
 class QuarantineReason(StrEnum):
     HIGH_TRUST_LOW_SUPPORT_CONFLICT_CLUSTER = "high_trust_low_support_conflict_cluster"
+
+
+class SuspicionTag(StrEnum):
+    GOAL_HIJACK_SUSPECTED = "goal_hijack_suspected"
+    CROSS_SCOPE_INFLUENCE_ATTEMPT = "cross_scope_influence_attempt"
+
+
+class ThreatLabel(StrEnum):
+    INFLUENCE_MANIPULATION = "influence_manipulation"
+    SCOPE_ESCAPE_ATTEMPT = "scope_escape_attempt"
 
 
 @dataclass(frozen=True)

@@ -18,6 +18,8 @@ class MemoryEvent:
     memory_id: str
     event_time: str
     payload: dict[str, Any]
+    actor_class: str
+    source_class: str
     schema_version: str = EVENT_SCHEMA_VERSION
     parent_event_id: str | None = None
 
@@ -30,6 +32,8 @@ def new_event(
     stream_id: str,
     memory_id: str,
     payload: dict[str, Any],
+    actor_class: str,
+    source_class: str,
     parent_event_id: str | None = None,
 ) -> MemoryEvent:
     return MemoryEvent(
@@ -40,6 +44,8 @@ def new_event(
         memory_id=memory_id,
         event_time=datetime.now(timezone.utc).isoformat(),
         payload=payload,
+        actor_class=actor_class,
+        source_class=source_class,
         schema_version=EVENT_SCHEMA_VERSION,
         parent_event_id=parent_event_id,
     )

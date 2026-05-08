@@ -49,6 +49,8 @@ class LineageStorage:
                                 {"name": "event_type", "type": "string", "required": True},
                                 {"name": "memory_id", "type": "string", "required": True},
                                 {"name": "payload", "type": "string", "required": False},
+                                {"name": "actor_class", "type": "string", "required": True},
+                                {"name": "source_class", "type": "string", "required": True},
                                 {"name": "event_time", "type": "timestamp", "required": True},
                                 {"name": "schema_version", "type": "string", "required": True},
                                 {"name": "parent_event_id", "type": "string", "required": False},
@@ -71,6 +73,8 @@ class LineageStorage:
             "event_time": event.event_time,
             "schema_version": event.schema_version,
             "parent_event_id": event.parent_event_id,
+            "actor_class": event.actor_class,
+            "source_class": event.source_class,
             "payload": event.payload,
         }
 
@@ -106,6 +110,8 @@ class LineageStorage:
             "memory_id": event.memory_id,
             "event_time": event.event_time,
             "schema_version": event.schema_version,
+            "actor_class": event.actor_class,
+            "source_class": event.source_class,
         }
         missing = [name for name, value in required.items() if not value]
         if missing:
