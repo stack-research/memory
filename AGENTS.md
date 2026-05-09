@@ -38,6 +38,21 @@ Every new event must include:
 - Quarantine suspicious/poisoned memory before promotion.
 - Keep rejection/quarantine reasons machine-readable and deterministic.
 
+## Memory model anchor
+
+- Current/common harness baseline: encode + store + retrieve (memory plumbing).
+- Target in this repo: governed memory control system.
+- Required controls: significance-triggered admission, eligibility-gated influence, decay/suppression/promotion, conflict persistence, poisoning quarantine, immutable lineage audit.
+
+## Operating doctrine
+
+- Act on risk, don't wait on permission; always emit lineage; allow intervention, don't require it.
+- "Safest known strategy" may be incomplete or poisoned; treat trust as a prior, not truth.
+- Emit deterministic sensor-disagreement/split-reality events when signals diverge.
+- Run two execution modes:
+  - Governed mode (default): full eligibility/policy checks before influence.
+  - Reflex mode (bounded): low-latency path with strict action/time budget, cooldown, and forced re-entry to governed mode.
+
 ## Working conventions
 
 - Use `uv` for Python env/deps and execution.

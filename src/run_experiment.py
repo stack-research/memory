@@ -16,6 +16,12 @@ from src.experiments.e9_eligibility_contradiction_pressure import run as run_e9
 from src.experiments.e10_reconsolidation_stability import run as run_e10
 from src.experiments.e11_promotion_forgetting_coupling import run as run_e11
 from src.experiments.e12_trusted_source_poison_resilience import run as run_e12
+from src.experiments.implicit.im_a_unprompted_trigger import run as run_im_a
+from src.experiments.implicit.im_c_trusted_false_contamination import run as run_im_c
+from src.experiments.implicit.im_d_reflex_boundary import run as run_im_d
+from src.experiments.implicit.im_e_conflict_persistence import run as run_im_e
+from src.experiments.implicit.im_f_replay_determinism import run as run_im_f
+from src.experiments.implicit.im_regression import run as run_im_regression
 from src.storage import LineageStorage
 
 
@@ -32,6 +38,12 @@ EXPERIMENTS = {
     "e10": run_e10,
     "e11": run_e11,
     "e12": run_e12,
+    "im-a": run_im_a,
+    "im-c": run_im_c,
+    "im-d": run_im_d,
+    "im-e": run_im_e,
+    "im-f": run_im_f,
+    "im-regression": run_im_regression,
 }
 
 

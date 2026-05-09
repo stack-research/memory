@@ -20,6 +20,7 @@ From `stacks/`:
 - `PYTHONPATH=.. uv run python -m src.run_experiment e12`
 - `PYTHONPATH=.. uv run python -m src.experiments.lab_regression`
 - `PYTHONPATH=.. uv run python -m src.experiments.e9_e12_regression`
+- `PYTHONPATH=.. uv run python -m src.experiments.implicit.im_regression`
 
 Required environment comes from project root `.env` / `.env.local` (loaded by the stack tooling) and standard shell env for experiment runs.
 
@@ -196,6 +197,22 @@ Current behavior (scaffold):
 - Computes risk and applies quarantine threshold logic.
 - Emits deterministic quarantined or promoted outcomes per cycle.
 - Emits final poison-promotion and label-coverage summary.
+
+### Implicit Memory Regression Harness (Suites A/C/D/E/F)
+
+Directory: `implicit/`
+
+Purpose:
+- Execute first-wave implicit-memory suites from `specs/IMPLICIT_MEMORY_TEST_SPEC.md`.
+- Validate trigger behavior, contamination handling, reflex boundaries, contradiction persistence, and replay determinism.
+
+Current behavior:
+- `im_a_unprompted_trigger.py` (Suite A)
+- `im_c_trusted_false_contamination.py` (Suite C)
+- `im_d_reflex_boundary.py` (Suite D)
+- `im_e_conflict_persistence.py` (Suite E)
+- `im_f_replay_determinism.py` (Suite F)
+- `im_regression.py` aggregates pass/fail.
 
 ### E9-E12 Regression Harness
 

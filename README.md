@@ -17,6 +17,15 @@ That means:
 - reconstructed output is belief (not reality),
 - and what matters is whether memory is **eligible to influence future action**.
 
+## Memory model positioning
+
+Most agent harnesses (and most early systems) stop at encode/store/retrieve memory plumbing.
+This lab targets the next layer: governed memory control (admission, influence gating, decay,
+promotion/suppression, contradiction persistence, contamination handling, and replayable lineage).
+
+See:
+- `specs/IMPLICIT_MEMORY_SPEC.md`
+
 ## Core concepts
 
 1. **Memory ≠ reality**
@@ -81,7 +90,7 @@ Every event must include:
 
 ## Experiments
 
-Implemented runners: `e1` through `e8`.
+Implemented runners: `e1` through `e12`.
 
 See:
 - `src/experiments/README.md`
@@ -101,7 +110,7 @@ The lab should demonstrate:
 Use `Makefile` targets from repo root:
 
 - `make synth` / `make deploy`
-- `make exp-e1` … `make exp-e8`
+- `make exp-e1` … `make exp-e12`
 - `make ingest-preflight` (schema/projection check)
 - `make ingest`
 - `make phase4-audit` / `make phase5-audit` / `make phase6-audit`
