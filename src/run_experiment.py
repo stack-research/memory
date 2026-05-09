@@ -25,6 +25,9 @@ from src.experiments.implicit.im_f_replay_determinism import run as run_im_f
 from src.experiments.implicit.im_g_event_flood import run as run_im_g
 from src.experiments.implicit.im_aws_lineage_replay import run as run_im_aws
 from src.experiments.implicit.im_h_procedure_lifecycle import run as run_im_h
+from src.experiments.implicit.im_i_policy_mutation_lineage import run as run_im_i
+from src.experiments.implicit.im_j_split_reality_integration import run as run_im_j
+from src.experiments.implicit.im_k_scheduled_cues import run as run_im_k
 from src.experiments.implicit.im_regression import run as run_im_regression
 from src.storage import LineageStorage
 
@@ -51,6 +54,9 @@ EXPERIMENTS = {
     "im-g": run_im_g,
     "im-aws": run_im_aws,
     "im-h": run_im_h,
+    "im-i": run_im_i,
+    "im-j": run_im_j,
+    "im-k": run_im_k,
     "im-regression": run_im_regression,
 }
 

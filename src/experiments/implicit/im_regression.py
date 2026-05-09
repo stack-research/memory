@@ -8,6 +8,9 @@ from src.experiments.implicit.im_e_conflict_persistence import run as run_e
 from src.experiments.implicit.im_f_replay_determinism import run as run_f
 from src.experiments.implicit.im_g_event_flood import run as run_g
 from src.experiments.implicit.im_h_procedure_lifecycle import run as run_h
+from src.experiments.implicit.im_i_policy_mutation_lineage import run as run_i
+from src.experiments.implicit.im_j_split_reality_integration import run as run_j
+from src.experiments.implicit.im_k_scheduled_cues import run as run_k
 
 
 def run() -> dict:
@@ -19,6 +22,9 @@ def run() -> dict:
     f = run_f()
     g = run_g()
     h = run_h()
+    i = run_i()
+    j = run_j()
+    k = run_k()
 
     # explicit flood fail gates
     flood_gate_ok = (
@@ -28,7 +34,7 @@ def run() -> dict:
     )
 
     summary = {
-        "implicit_regression": "PASSED" if a["pass"] and b["pass"] and c["pass"] and d["pass"] and e["pass"] and f["pass"] and g["pass"] and h["pass"] and flood_gate_ok else "FAILED",
+        "implicit_regression": "PASSED" if a["pass"] and b["pass"] and c["pass"] and d["pass"] and e["pass"] and f["pass"] and g["pass"] and h["pass"] and i["pass"] and j["pass"] and k["pass"] and flood_gate_ok else "FAILED",
         "a_pass": a["pass"],
         "b_pass": b["pass"],
         "c_pass": c["pass"],
@@ -37,6 +43,9 @@ def run() -> dict:
         "f_pass": f["pass"],
         "g_pass": g["pass"],
         "h_pass": h["pass"],
+        "i_pass": i["pass"],
+        "j_pass": j["pass"],
+        "k_pass": k["pass"],
         "flood_gate_ok": flood_gate_ok,
     }
     print(summary)

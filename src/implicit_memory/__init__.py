@@ -10,6 +10,9 @@ from .procedure_lifecycle import (
     decay_procedure,
     reinforce_procedure,
 )
+from .policy_mutation import PolicyState, supersede_procedure, update_threshold
+from .controller import ObservationSignals, process_observation
+from .scheduler import ScheduledCue, due_cues, escalation_level, now_utc
 
 __all__ = [
     "admission_score",
@@ -27,4 +30,13 @@ __all__ = [
     "reinforce_procedure",
     "decay_procedure",
     "apply_urgency_trust_decay",
+    "PolicyState",
+    "update_threshold",
+    "supersede_procedure",
+    "ObservationSignals",
+    "process_observation",
+    "ScheduledCue",
+    "due_cues",
+    "escalation_level",
+    "now_utc",
 ]
