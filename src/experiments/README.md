@@ -14,7 +14,12 @@ From `stacks/`:
 - `PYTHONPATH=.. uv run python -m src.run_experiment e6`
 - `PYTHONPATH=.. uv run python -m src.run_experiment e7`
 - `PYTHONPATH=.. uv run python -m src.run_experiment e8`
+- `PYTHONPATH=.. uv run python -m src.run_experiment e9`
+- `PYTHONPATH=.. uv run python -m src.run_experiment e10`
+- `PYTHONPATH=.. uv run python -m src.run_experiment e11`
+- `PYTHONPATH=.. uv run python -m src.run_experiment e12`
 - `PYTHONPATH=.. uv run python -m src.experiments.lab_regression`
+- `PYTHONPATH=.. uv run python -m src.experiments.biomech_regression`
 
 Required environment comes from project root `.env` / `.env.local` (loaded by the stack tooling) and standard shell env for experiment runs.
 
@@ -140,6 +145,69 @@ Current behavior:
 - Rebuilds vectors from canonical lineage for the same `run_id` and reruns recall.
 - Compares top-3 overlap and marks equivalent if overlap >= configured tolerance.
 - Emits a reproducibility snapshot with ranking signature and metadata.
+
+### E9 - Eligibility Under Contradiction Pressure
+
+File: `e9_eligibility_contradiction_pressure.py`
+
+Purpose:
+- Stress eligibility gating under contradictory candidate pressure.
+
+Current behavior (scaffold):
+- Seeds contradiction scenarios with axis-specific metadata shifts.
+- Computes expected winner from eligibility formula priors.
+- Runs retrieval and compares observed accepted winner vs expected winner.
+- Emits per-scenario and final `snapshotted` summaries with agreement metrics.
+
+### E10 - Reconsolidation Stability Envelope
+
+File: `e10_reconsolidation_stability.py`
+
+Purpose:
+- Measure bounded drift under repeated write-on-read mutation.
+
+Current behavior (scaffold):
+- Repeatedly recalls and mutates one core memory across context shifts.
+- Tracks cosine similarity to previous and base embeddings.
+- Emits mutation lineage with drift payload and final stability snapshot.
+
+### E11 - Promotion-Forgetting Coupling
+
+File: `e11_promotion_forgetting_coupling.py`
+
+Purpose:
+- Couple semantic promotion and episodic suppression in one lifecycle.
+
+Current behavior (scaffold):
+- Seeds promotable and non-promotable episodic clusters.
+- Applies promotion gate and emits gate snapshots.
+- Promotes eligible clusters, suppresses source episodes, and records `derived_from` links.
+- Compares pre/post top-k kind share and emits final coupling summary.
+
+### E12 - Trusted-Source Poison Resilience
+
+File: `e12_trusted_source_poison_resilience.py`
+
+Purpose:
+- Stress trusted-false poisoning defenses under support/conflict variation.
+
+Current behavior (scaffold):
+- Runs poisoning scenarios with varying trust/support/conflict profiles.
+- Computes risk and applies quarantine threshold logic.
+- Emits deterministic quarantined or promoted outcomes per cycle.
+- Emits final poison-promotion and label-coverage summary.
+
+### Biomech Regression Harness
+
+File: `biomech_regression.py`
+
+Purpose:
+- Minimal regression harness for E9-E12 experiment tranche.
+
+Current behavior:
+- Executes E9, E10, E11, E12 in sequence.
+- Validates summary schema and numeric-range sanity checks.
+- Reports per-experiment pass booleans without enforcing all to be true during scaffold phase.
 
 Notes:
 - Lineage events are currently written as append-only JSON ingress objects in S3.

@@ -5,7 +5,7 @@ AWS_REGION ?= us-east-2
 PYTHONPATH_ROOT := ..
 STACKS_DIR := stacks
 
-.PHONY: synth deploy exp-e1 exp-e2 exp-e3 exp-e4 exp-e5 exp-e6 exp-e7 exp-e8 ingest ingest-preflight show-tables e2-analysis e5-analysis phase4-audit phase5-audit phase6-audit phase6-regression lab-regression
+.PHONY: synth deploy exp-e1 exp-e2 exp-e3 exp-e4 exp-e5 exp-e6 exp-e7 exp-e8 exp-e9 exp-e10 exp-e11 exp-e12 ingest ingest-preflight show-tables e2-analysis e5-analysis e9-analysis e10-analysis e11-analysis e12-analysis phase4-audit phase5-audit phase6-audit phase6-regression lab-regression biomech-regression
 
 synth:
 	cd $(STACKS_DIR) && uv run cdk synth
@@ -37,6 +37,18 @@ exp-e7:
 exp-e8:
 	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.run_experiment e8
 
+exp-e9:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.run_experiment e9
+
+exp-e10:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.run_experiment e10
+
+exp-e11:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.run_experiment e11
+
+exp-e12:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.run_experiment e12
+
 ingest:
 	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.ingestion.run_ingestion
 
@@ -52,6 +64,18 @@ e2-analysis:
 e5-analysis:
 	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.run_sql_file ../src/experiments/sql/e5_promotion_analysis.sql --database memory_lab --catalog AwsDataCatalog --workgroup memory-lab
 
+e9-analysis:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.run_sql_file ../src/experiments/sql/e9_eligibility_pressure_analysis.sql --database memory_lab --catalog AwsDataCatalog --workgroup memory-lab
+
+e10-analysis:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.run_sql_file ../src/experiments/sql/e10_reconsolidation_stability_analysis.sql --database memory_lab --catalog AwsDataCatalog --workgroup memory-lab
+
+e11-analysis:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.run_sql_file ../src/experiments/sql/e11_promotion_forgetting_analysis.sql --database memory_lab --catalog AwsDataCatalog --workgroup memory-lab
+
+e12-analysis:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.run_sql_file ../src/experiments/sql/e12_poison_resilience_analysis.sql --database memory_lab --catalog AwsDataCatalog --workgroup memory-lab
+
 phase4-audit:
 	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.run_sql_file ../src/experiments/sql/phase4_policy_audit.sql --database memory_lab --catalog $${AWS_ATHENA_S3TABLES_CATALOG:-s3tablescatalog/memory-lab-lineage-table} --workgroup memory-lab
 
@@ -66,3 +90,6 @@ phase6-regression:
 
 lab-regression:
 	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.lab_regression
+
+biomech-regression:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.biomech_regression

@@ -12,6 +12,10 @@ from src.experiments.e5_sleep_promotion import run as run_e5
 from src.experiments.e6_poisoning_before_promotion import run as run_e6
 from src.experiments.e7_replay_rebuild import run as run_e7
 from src.experiments.e8_vector_rebuild import run as run_e8
+from src.experiments.e9_eligibility_contradiction_pressure import run as run_e9
+from src.experiments.e10_reconsolidation_stability import run as run_e10
+from src.experiments.e11_promotion_forgetting_coupling import run as run_e11
+from src.experiments.e12_trusted_source_poison_resilience import run as run_e12
 from src.storage import LineageStorage
 
 
@@ -24,6 +28,10 @@ EXPERIMENTS = {
     "e6": run_e6,
     "e7": run_e7,
     "e8": run_e8,
+    "e9": run_e9,
+    "e10": run_e10,
+    "e11": run_e11,
+    "e12": run_e12,
 }
 
 

@@ -31,6 +31,54 @@ Covers:
 Run automatically from repo root:
 - `make e5-analysis`
 
+## E9 Eligibility Pressure Analysis
+
+File: `e9_eligibility_pressure_analysis.sql`
+
+Covers:
+- per-scenario expected vs observed winner agreement
+- final agreement/pass snapshot
+- rejection reason taxonomy usage within E9
+
+Run automatically from repo root:
+- `make e9-analysis`
+
+## E10 Reconsolidation Stability Analysis
+
+File: `e10_reconsolidation_stability_analysis.sql`
+
+Covers:
+- mutation drift timeline (`cosine_similarity_to_previous`, `...to_base`)
+- final stability/pass snapshot
+- mutation lineage parent linkage completeness
+
+Run automatically from repo root:
+- `make e10-analysis`
+
+## E11 Promotion-Forgetting Coupling Analysis
+
+File: `e11_promotion_forgetting_analysis.sql`
+
+Covers:
+- promotion gate decisions
+- promoted + derived linkage event counts
+- final coupling/pass summary metrics
+
+Run automatically from repo root:
+- `make e11-analysis`
+
+## E12 Poison Resilience Analysis
+
+File: `e12_poison_resilience_analysis.sql`
+
+Covers:
+- per-cycle poison risk snapshots
+- quarantine label coverage
+- final poison resilience/pass summary metrics
+
+Run automatically from repo root:
+- `make e12-analysis`
+
 ## Phase 4 Policy Audit
 
 File: `phase4_policy_audit.sql`

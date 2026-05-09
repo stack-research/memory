@@ -418,6 +418,129 @@ Expected:
 
 - recall equivalence within accepted tolerance
 
+### E9: Eligibility Under Contradiction Pressure
+
+Goal:
+
+Prove that eligibility gating (not retrieval rank alone) governs influence when conflicting memories compete.
+
+Hypothesis:
+
+- Under controlled conflicts, the selected memory should track the configured eligibility function.
+- Trust should remain a prior, not override consistency/safety pressure.
+
+Method:
+
+- Seed paired contradictions (`A`, `¬A`) with tunable metadata.
+- Run query sweeps where one axis changes at a time:
+  - trust-only shift
+  - recency-only shift
+  - reinforcement-only shift
+  - consistency/safety penalty shift
+- Record accepted/rejected events with eligibility scores and reasons.
+
+Pass metrics:
+
+- Agreement rate between expected winner (from formula) and recalled winner >= 0.90.
+- Every rejected candidate has controlled reason taxonomy (`eligibility_below_threshold` or `cross_scope_reference_attempt`) = 100%.
+- No recall accepted below configured threshold = 100%.
+
+Fail conditions:
+
+- Winner tracks nearest-neighbor rank while violating eligibility score order.
+- Any uncontrolled rejection reason appears.
+- Any below-threshold memory is accepted.
+
+### E10: Reconsolidation Stability Envelope (Write-on-Read)
+
+Goal:
+
+Measure whether repeated recall+mutation converges to stable abstraction or diverges into noise.
+
+Hypothesis:
+
+- Context shifts should cause bounded drift with preserved semantic core under normal pressure.
+- Drift should be observable and auditable in lineage.
+
+Method:
+
+- Repeatedly recall the same memory under structured context perturbations.
+- Mutate and re-store on each recall (write-on-read).
+- Track per-step drift:
+  - cosine similarity to base
+  - cosine similarity to previous
+  - claim token-level delta ratio (or equivalent string delta)
+
+Pass metrics:
+
+- Median cosine similarity to previous step >= 0.85.
+- Final cosine similarity to base >= 0.60 (bounded long-run drift).
+- 100% of mutation events include parent linkage and drift payload fields.
+
+Fail conditions:
+
+- Unbounded semantic collapse (final cosine to base < 0.60 without quarantine/suppression).
+- Missing mutation lineage links or drift fields.
+
+### E11: Promotion-Forgetting Coupling
+
+Goal:
+
+Test whether semantic promotion and episodic decay are coupled as one lifecycle, not independent heuristics.
+
+Hypothesis:
+
+- Frequently reinforced low-variance episodes should promote to semantic memory.
+- After promotion, low-value episodic traces should decay/suppress influence while preserving lineage.
+
+Method:
+
+- Seed episodic clusters with controlled support density and context variance.
+- Run reinforcement schedule + sleep/promotion pass.
+- Apply decay/suppression pass to episodic members.
+- Query before/after to compare semantic vs episodic influence.
+
+Pass metrics:
+
+- Promotion precision >= 0.80 against labeled promotable clusters.
+- Post-promotion episodic influence share decreases by >= 30% while semantic recall share increases.
+- 100% promoted memories retain `derived_from` lineage links to episodic sources.
+
+Fail conditions:
+
+- Promotion occurs for high-variance/low-support clusters above tolerance.
+- Episodic traces remain dominant after successful promotion with no decay/suppression evidence.
+- Missing lineage links from semantic memory to source episodes.
+
+### E12: Trusted-Source Poison Resilience
+
+Goal:
+
+Stress-test trust-aware gating where high-trust false memories compete with weaker true support.
+
+Hypothesis:
+
+- High-trust false memories should be blocked from promotion/influence when support is low and conflicts are high.
+- Quarantine should activate deterministically with machine-readable threat/suspicion labels.
+
+Method:
+
+- Inject trusted-but-false claims plus weak true contradictory evidence.
+- Vary support density and trust gaps.
+- Measure recall acceptance, quarantine decisions, and promotion outcomes over repeated cycles.
+
+Pass metrics:
+
+- Poison promotion rate <= 5% in high-conflict/low-support regimes.
+- Quarantine trigger latency <= 1 cycle after risk threshold breach.
+- 100% quarantined events include controlled `reason`, `suspicion_tags`, `threat_labels`.
+
+Fail conditions:
+
+- High-trust false claims consistently promote despite conflict + low support.
+- Non-deterministic quarantine tags/reasons.
+- Poison memories continue to influence output after quarantine without explicit release event.
+
 ---
 
 ## Metrics
