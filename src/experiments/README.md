@@ -22,6 +22,7 @@ From `stacks/`:
 - `PYTHONPATH=.. uv run python -m src.experiments.e9_e12_regression`
 - `PYTHONPATH=.. uv run python -m src.experiments.implicit.im_regression`
 - `PYTHONPATH=.. uv run python -m src.experiments.implicit.im_aws_lineage_replay`
+- `PYTHONPATH=.. uv run python -m src.implicit_memory.run_loop`
 
 Required environment comes from project root `.env` / `.env.local` (loaded by the stack tooling) and standard shell env for experiment runs.
 

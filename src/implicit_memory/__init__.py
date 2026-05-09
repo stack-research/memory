@@ -13,6 +13,7 @@ from .procedure_lifecycle import (
 from .policy_mutation import PolicyState, supersede_procedure, update_threshold
 from .controller import ObservationSignals, process_observation
 from .scheduler import ScheduledCue, due_cues, escalation_level, now_utc
+from .loop import ImplicitControllerLoop
 
 __all__ = [
     "admission_score",
@@ -39,4 +40,5 @@ __all__ = [
     "due_cues",
     "escalation_level",
     "now_utc",
+    "ImplicitControllerLoop",
 ]
