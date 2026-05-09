@@ -9,7 +9,7 @@ from src.experiments.e9_eligibility_contradiction_pressure import run as run_e9
 
 
 def _fail(msg: str) -> None:
-    print({"biomech_regression": "FAILED", "reason": msg})
+    print({"e9_e12_regression": "FAILED", "reason": msg})
     raise SystemExit(1)
 
 
@@ -68,7 +68,7 @@ def main() -> None:
 
     print(
         {
-            "biomech_regression": "PASSED",
+            "e9_e12_regression": "PASSED",
             "e9_pass": e9["pass"],
             "e10_pass": e10["pass"],
             "e11_pass": e11["pass"],
@@ -83,5 +83,5 @@ if __name__ == "__main__":
     except SystemExit:
         raise
     except Exception as exc:  # pragma: no cover
-        print({"biomech_regression": "FAILED", "error": str(exc)})
+        print({"e9_e12_regression": "FAILED", "error": str(exc)})
         sys.exit(1)

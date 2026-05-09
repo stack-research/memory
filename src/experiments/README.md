@@ -19,7 +19,7 @@ From `stacks/`:
 - `PYTHONPATH=.. uv run python -m src.run_experiment e11`
 - `PYTHONPATH=.. uv run python -m src.run_experiment e12`
 - `PYTHONPATH=.. uv run python -m src.experiments.lab_regression`
-- `PYTHONPATH=.. uv run python -m src.experiments.biomech_regression`
+- `PYTHONPATH=.. uv run python -m src.experiments.e9_e12_regression`
 
 Required environment comes from project root `.env` / `.env.local` (loaded by the stack tooling) and standard shell env for experiment runs.
 
@@ -197,9 +197,9 @@ Current behavior (scaffold):
 - Emits deterministic quarantined or promoted outcomes per cycle.
 - Emits final poison-promotion and label-coverage summary.
 
-### Biomech Regression Harness
+### E9-E12 Regression Harness
 
-File: `biomech_regression.py`
+File: `e9_e12_regression.py`
 
 Purpose:
 - Minimal regression harness for E9-E12 experiment tranche.

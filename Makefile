@@ -5,7 +5,7 @@ AWS_REGION ?= us-east-2
 PYTHONPATH_ROOT := ..
 STACKS_DIR := stacks
 
-.PHONY: synth deploy exp-e1 exp-e2 exp-e3 exp-e4 exp-e5 exp-e6 exp-e7 exp-e8 exp-e9 exp-e10 exp-e11 exp-e12 ingest ingest-preflight show-tables e2-analysis e5-analysis e9-analysis e10-analysis e11-analysis e12-analysis phase4-audit phase5-audit phase6-audit phase6-regression lab-regression biomech-regression
+.PHONY: synth deploy exp-e1 exp-e2 exp-e3 exp-e4 exp-e5 exp-e6 exp-e7 exp-e8 exp-e9 exp-e10 exp-e11 exp-e12 ingest ingest-preflight show-tables e2-analysis e5-analysis e9-analysis e10-analysis e11-analysis e12-analysis phase4-audit phase5-audit phase6-audit phase6-regression lab-regression e9-e12-regression
 
 synth:
 	cd $(STACKS_DIR) && uv run cdk synth
@@ -91,5 +91,5 @@ phase6-regression:
 lab-regression:
 	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.lab_regression
 
-biomech-regression:
-	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.biomech_regression
+e9-e12-regression:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.e9_e12_regression
