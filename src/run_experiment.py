@@ -21,6 +21,8 @@ from src.experiments.implicit.im_c_trusted_false_contamination import run as run
 from src.experiments.implicit.im_d_reflex_boundary import run as run_im_d
 from src.experiments.implicit.im_e_conflict_persistence import run as run_im_e
 from src.experiments.implicit.im_f_replay_determinism import run as run_im_f
+from src.experiments.implicit.im_g_event_flood import run as run_im_g
+from src.experiments.implicit.im_aws_lineage_replay import run as run_im_aws
 from src.experiments.implicit.im_regression import run as run_im_regression
 from src.storage import LineageStorage
 
@@ -43,6 +45,8 @@ EXPERIMENTS = {
     "im-d": run_im_d,
     "im-e": run_im_e,
     "im-f": run_im_f,
+    "im-g": run_im_g,
+    "im-aws": run_im_aws,
     "im-regression": run_im_regression,
 }
 

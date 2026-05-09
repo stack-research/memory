@@ -21,6 +21,7 @@ From `stacks/`:
 - `PYTHONPATH=.. uv run python -m src.experiments.lab_regression`
 - `PYTHONPATH=.. uv run python -m src.experiments.e9_e12_regression`
 - `PYTHONPATH=.. uv run python -m src.experiments.implicit.im_regression`
+- `PYTHONPATH=.. uv run python -m src.experiments.implicit.im_aws_lineage_replay`
 
 Required environment comes from project root `.env` / `.env.local` (loaded by the stack tooling) and standard shell env for experiment runs.
 
@@ -212,7 +213,9 @@ Current behavior:
 - `im_d_reflex_boundary.py` (Suite D)
 - `im_e_conflict_persistence.py` (Suite E)
 - `im_f_replay_determinism.py` (Suite F)
-- `im_regression.py` aggregates pass/fail.
+- `im_g_event_flood.py` (Suite G event-flood adversarial)
+- `im_aws_lineage_replay.py` (AWS lineage + canonical replay smoke)
+- `im_regression.py` aggregates pass/fail and enforces flood fail gates.
 
 ### E9-E12 Regression Harness
 

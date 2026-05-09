@@ -7,6 +7,10 @@ from enum import StrEnum
 class RejectionReason(StrEnum):
     ELIGIBILITY_BELOW_THRESHOLD = "eligibility_below_threshold"
     CROSS_SCOPE_REFERENCE_ATTEMPT = "cross_scope_reference_attempt"
+    URGENCY_SPOOF_SUSPECTED = "urgency_spoof_suspected"
+    SENSORY_CONFIDENCE_SPOOF_SUSPECTED = "sensory_confidence_spoof_suspected"
+    REFLEX_BUDGET_EXHAUSTED = "reflex_budget_exhausted"
+    EVENT_FLOOD_SUSPECTED = "event_flood_suspected"
 
 
 class QuarantineReason(StrEnum):

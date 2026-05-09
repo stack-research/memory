@@ -85,7 +85,15 @@ def run() -> dict:
                     agent_id=agent_id,
                     stream_id=stream_id,
                     memory_id=step["id"],
-                    payload={"reason": "reflex_cooldown_or_budget"},
+                    payload={"reason": "reflex_budget_exhausted"},
+                )
+                emit(
+                    lineage,
+                    event_type="contamination_suspected",
+                    agent_id=agent_id,
+                    stream_id=stream_id,
+                    memory_id=step["id"],
+                    payload={"reason": "urgency_spoof_suspected", "risk": step["risk"], "urgency": step["urgency"], "sensory": step["sensory"]},
                 )
         else:
             emit(
