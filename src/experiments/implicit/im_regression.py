@@ -7,6 +7,7 @@ from src.experiments.implicit.im_d_reflex_boundary import run as run_d
 from src.experiments.implicit.im_e_conflict_persistence import run as run_e
 from src.experiments.implicit.im_f_replay_determinism import run as run_f
 from src.experiments.implicit.im_g_event_flood import run as run_g
+from src.experiments.implicit.im_h_procedure_lifecycle import run as run_h
 
 
 def run() -> dict:
@@ -17,6 +18,7 @@ def run() -> dict:
     e = run_e()
     f = run_f()
     g = run_g()
+    h = run_h()
 
     # explicit flood fail gates
     flood_gate_ok = (
@@ -26,7 +28,7 @@ def run() -> dict:
     )
 
     summary = {
-        "implicit_regression": "PASSED" if a["pass"] and b["pass"] and c["pass"] and d["pass"] and e["pass"] and f["pass"] and g["pass"] and flood_gate_ok else "FAILED",
+        "implicit_regression": "PASSED" if a["pass"] and b["pass"] and c["pass"] and d["pass"] and e["pass"] and f["pass"] and g["pass"] and h["pass"] and flood_gate_ok else "FAILED",
         "a_pass": a["pass"],
         "b_pass": b["pass"],
         "c_pass": c["pass"],
@@ -34,6 +36,7 @@ def run() -> dict:
         "e_pass": e["pass"],
         "f_pass": f["pass"],
         "g_pass": g["pass"],
+        "h_pass": h["pass"],
         "flood_gate_ok": flood_gate_ok,
     }
     print(summary)

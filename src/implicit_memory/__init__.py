@@ -4,6 +4,12 @@ from .eligibility import EligibilityDecision, eligibility_gate
 from .reflex_mode import ReflexController
 from .trigger_policy import TriggerAction, TriggerDecision, evaluate_trigger
 from .settings import ImplicitTestSettings, load_implicit_test_settings
+from .procedure_lifecycle import (
+    ProcedureState,
+    apply_urgency_trust_decay,
+    decay_procedure,
+    reinforce_procedure,
+)
 
 __all__ = [
     "admission_score",
@@ -17,4 +23,8 @@ __all__ = [
     "evaluate_trigger",
     "ImplicitTestSettings",
     "load_implicit_test_settings",
+    "ProcedureState",
+    "reinforce_procedure",
+    "decay_procedure",
+    "apply_urgency_trust_decay",
 ]

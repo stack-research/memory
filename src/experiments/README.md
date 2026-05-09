@@ -215,6 +215,7 @@ Current behavior:
 - `im_e_conflict_persistence.py` (Suite E)
 - `im_f_replay_determinism.py` (Suite F)
 - `im_g_event_flood.py` (Suite G event-flood adversarial)
+- `im_h_procedure_lifecycle.py` (Suite H reinforcement/decay + urgency trust decay)
 - `im_aws_lineage_replay.py` (AWS lineage + canonical replay smoke)
 - `im_regression.py` aggregates pass/fail and enforces flood fail gates.
 
