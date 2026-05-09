@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.experiments.implicit.common import InMemoryLineageEngine, emit, summarize
 from src.implicit_memory.eligibility import eligibility_gate
+from src.implicit_memory.settings import load_implicit_test_settings
 
 
 def run() -> dict:
@@ -9,6 +10,8 @@ def run() -> dict:
     stream_id = "im-e"
     events: list[dict] = []
     lineage = InMemoryLineageEngine(events=events)
+
+    cfg = load_implicit_test_settings()
 
     # A and not-A remain present; context shifts should change winner, not erase loser.
     claims = [
@@ -57,7 +60,7 @@ def run() -> dict:
             reinforcement=claims[0]["reinforcement"],
             consistency=claims[0]["consistency"],
             safety=claims[0]["safety"],
-            threshold=0.30,
+            threshold=cfg.eligibility_threshold,
         )
         dec_b = eligibility_gate(
             relevance=ctx["relevance_notA"],
@@ -66,7 +69,7 @@ def run() -> dict:
             reinforcement=claims[1]["reinforcement"],
             consistency=claims[1]["consistency"],
             safety=claims[1]["safety"],
-            threshold=0.30,
+            threshold=cfg.eligibility_threshold,
         )
 
         winner = "e-A" if dec_a.score >= dec_b.score else "e-notA"

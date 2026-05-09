@@ -209,6 +209,7 @@ Purpose:
 
 Current behavior:
 - `im_a_unprompted_trigger.py` (Suite A)
+- `im_b_session_reset_timegap.py` (Suite B)
 - `im_c_trusted_false_contamination.py` (Suite C)
 - `im_d_reflex_boundary.py` (Suite D)
 - `im_e_conflict_persistence.py` (Suite E)

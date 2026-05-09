@@ -103,6 +103,40 @@ Covers:
 Run automatically from repo root:
 - `make phase5-audit`
 
+## Implicit Trigger Metrics
+
+File: `im_trigger_metrics.sql`
+
+Covers:
+- trigger evaluated/fired/deferred/no-op counts
+- admitted/rejected counts
+- per-stream fired-rate for implicit runs (`stream_id like 'im-%'`)
+
+Run automatically from repo root:
+- `make im-trigger-analysis`
+
+## Implicit Contamination Metrics
+
+File: `im_contamination_metrics.sql`
+
+Covers:
+- contamination suspicion counts and reason taxonomy
+- rejection reason correlation (`contamination_risk_threshold`, `event_flood_suspected`, `reflex_budget_exhausted`)
+
+Run automatically from repo root:
+- `make im-contamination-analysis`
+
+## Implicit Replay Diff
+
+File: `im_replay_diff.sql`
+
+Covers:
+- cross-stream event-type count deltas for implicit runs
+- quick drift/determinism triage view
+
+Run automatically from repo root:
+- `make im-replay-diff`
+
 ## Phase 6 Attack-Surface Prep Audit
 
 File: `phase6_attack_surface_audit.sql`

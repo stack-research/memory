@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.experiments.implicit.common import InMemoryLineageEngine, emit, summarize
 from src.implicit_memory.contamination import contamination_risk
+from src.implicit_memory.settings import load_implicit_test_settings
 
 
 def run() -> dict:
@@ -9,6 +10,8 @@ def run() -> dict:
     stream_id = "im-c"
     events: list[dict] = []
     lineage = InMemoryLineageEngine(events=events)
+
+    cfg = load_implicit_test_settings()
 
     scenarios = [
         {"memory_id": "c1", "source_trust": 0.95, "support": 0.2, "conflict": 0.9, "anomaly": 0.7},
@@ -33,7 +36,7 @@ def run() -> dict:
             memory_id=s["memory_id"],
             payload={"risk": risk, **s},
         )
-        if risk >= 0.60:
+        if risk >= cfg.contamination_threshold:
             quarantined += 1
             emit(
                 lineage,

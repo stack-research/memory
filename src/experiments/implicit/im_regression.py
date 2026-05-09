@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from src.experiments.implicit.im_a_unprompted_trigger import run as run_a
+from src.experiments.implicit.im_b_session_reset_timegap import run as run_b
 from src.experiments.implicit.im_c_trusted_false_contamination import run as run_c
 from src.experiments.implicit.im_d_reflex_boundary import run as run_d
 from src.experiments.implicit.im_e_conflict_persistence import run as run_e
@@ -10,6 +11,7 @@ from src.experiments.implicit.im_g_event_flood import run as run_g
 
 def run() -> dict:
     a = run_a()
+    b = run_b()
     c = run_c()
     d = run_d()
     e = run_e()
@@ -24,8 +26,9 @@ def run() -> dict:
     )
 
     summary = {
-        "implicit_regression": "PASSED" if a["pass"] and c["pass"] and d["pass"] and e["pass"] and f["pass"] and g["pass"] and flood_gate_ok else "FAILED",
+        "implicit_regression": "PASSED" if a["pass"] and b["pass"] and c["pass"] and d["pass"] and e["pass"] and f["pass"] and g["pass"] and flood_gate_ok else "FAILED",
         "a_pass": a["pass"],
+        "b_pass": b["pass"],
         "c_pass": c["pass"],
         "d_pass": d["pass"],
         "e_pass": e["pass"],

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.experiments.implicit.common import InMemoryLineageEngine, emit, summarize
 from src.implicit_memory.reflex_mode import ReflexController
+from src.implicit_memory.settings import load_implicit_test_settings
 from src.implicit_memory.trigger_policy import TriggerAction, evaluate_trigger
 
 
@@ -11,7 +12,8 @@ def run() -> dict:
     events: list[dict] = []
     lineage = InMemoryLineageEngine(events=events)
 
-    controller = ReflexController(max_actions=2, cooldown_steps=3)
+    cfg = load_implicit_test_settings()
+    controller = ReflexController(max_actions=cfg.reflex_max_actions, cooldown_steps=cfg.reflex_cooldown_steps)
 
     # includes valid reflex spikes and spoof/noise attempts
     steps = [

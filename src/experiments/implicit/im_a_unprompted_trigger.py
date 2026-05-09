@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.experiments.implicit.common import InMemoryLineageEngine, emit, summarize
 from src.implicit_memory.admission import admission_score
+from src.implicit_memory.settings import load_implicit_test_settings
 from src.implicit_memory.trigger_policy import TriggerAction, evaluate_trigger
 
 
@@ -17,6 +18,8 @@ def run() -> dict:
         {"id": "obs-3", "prediction_error": 0.05, "goal_impact": 0.05, "risk": 0.0, "repetition": 0.0, "contradiction": 0.0, "directive": False, "urgency": 0.1, "sensory": 0.8},
         {"id": "obs-4", "prediction_error": 0.2, "goal_impact": 0.2, "risk": 0.2, "repetition": 0.3, "contradiction": 0.6, "directive": False, "urgency": 0.1, "sensory": 0.8},
     ]
+
+    cfg = load_implicit_test_settings()
 
     high_significance = 0
     high_triggered = 0
@@ -49,7 +52,7 @@ def run() -> dict:
             novelty=1.0 - obs["repetition"],
             risk_signal=obs["risk"],
         )
-        is_high = sig >= 0.45
+        is_high = sig >= cfg.admission_threshold
         if is_high:
             high_significance += 1
         else:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 
 from src.experiments.implicit.common import InMemoryLineageEngine, emit, summarize
+from src.implicit_memory.settings import load_implicit_test_settings
 
 
 def run() -> dict:
@@ -11,7 +12,8 @@ def run() -> dict:
     events: list[dict] = []
     lineage = InMemoryLineageEngine(events=events)
 
-    flood_threshold = 5
+    cfg = load_implicit_test_settings()
+    flood_threshold = cfg.event_flood_threshold
     window_events = 12
 
     counts_by_source: dict[str, int] = defaultdict(int)
