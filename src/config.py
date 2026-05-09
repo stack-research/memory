@@ -22,6 +22,8 @@ class AwsConfig:
     vector_index_name: str
     embedding_model_id: str
     retrieval_policy: RetrievalPolicy
+    procedure_state_bucket_name: str | None
+    procedure_state_prefix: str
 
 
 
@@ -87,5 +89,12 @@ def load_config() -> AwsConfig:
             effective_at=os.environ.get("MEMORY_RETRIEVAL_POLICY_EFFECTIVE_AT", "2026-05-07T00:00:00Z"),
             eligibility_threshold=float(os.environ.get("MEMORY_RETRIEVAL_ELIGIBILITY_THRESHOLD", "0.2")),
             quarantine_risk_threshold=float(os.environ.get("MEMORY_QUARANTINE_RISK_THRESHOLD", "0.8")),
+            implicit_admission_threshold=float(os.environ.get("MEMORY_IMPLICIT_ADMISSION_THRESHOLD", "0.45")),
+            implicit_reflex_threshold=float(os.environ.get("MEMORY_IMPLICIT_REFLEX_THRESHOLD", "0.75")),
+            implicit_reflex_max_actions=int(os.environ.get("MEMORY_IMPLICIT_REFLEX_MAX_ACTIONS", "2")),
+            implicit_reflex_cooldown_steps=int(os.environ.get("MEMORY_IMPLICIT_REFLEX_COOLDOWN_STEPS", "3")),
+            implicit_event_flood_threshold=int(os.environ.get("MEMORY_IMPLICIT_EVENT_FLOOD_THRESHOLD", "5")),
         ),
+        procedure_state_bucket_name=os.environ.get("MEMORY_PROCEDURE_STATE_BUCKET_NAME"),
+        procedure_state_prefix=os.environ.get("MEMORY_PROCEDURE_STATE_PREFIX", "procedure-state/"),
     )

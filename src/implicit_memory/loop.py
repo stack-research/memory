@@ -6,6 +6,13 @@ from typing import Protocol
 
 from src.config import AwsConfig
 from src.implicit_memory.controller import ObservationSignals, process_observation
+from src.implicit_memory.procedure_lifecycle import (
+    ProcedureState,
+    apply_urgency_trust_decay,
+    decay_procedure,
+    reinforce_procedure,
+)
+from src.implicit_memory.procedure_state_store import ProcedureStateStore
 from src.implicit_memory.scheduler import ScheduledCue, due_cues, escalation_level, now_utc
 
 
@@ -64,6 +71,8 @@ class ImplicitControllerLoop:
         cue_provider: ScheduledCueProvider,
         agent_id: str,
         stream_id: str,
+        procedure_state_store: ProcedureStateStore | None = None,
+        procedure_id: str = "proc-reflex-triage",
     ) -> None:
         self.cfg = cfg
         self.lineage = lineage
@@ -71,10 +80,20 @@ class ImplicitControllerLoop:
         self.cue_provider = cue_provider
         self.agent_id = agent_id
         self.stream_id = stream_id
+        self.procedure_state_store = procedure_state_store
+        self.procedure_id = procedure_id
 
     def tick(self, *, now: datetime | None = None) -> dict:
         t = now or now_utc()
         stats = LoopStats()
+
+        procedure_state = (
+            self.procedure_state_store.load(procedure_id=self.procedure_id)
+            if self.procedure_state_store
+            else None
+        )
+        if procedure_state is None:
+            procedure_state = ProcedureState(procedure_id=self.procedure_id, strength=1.0, trust=1.0)
 
         observations = self.observation_provider.pull(now=t)
         for memory_id, signals in observations:
@@ -88,8 +107,47 @@ class ImplicitControllerLoop:
             stats.observations_processed += 1
             if decision.action.value in {"invoke_encode", "invoke_recall", "reflex_execute"}:
                 stats.observation_fired += 1
+                procedure_state = reinforce_procedure(procedure_state, reward=0.05)
+                self.lineage.emit(
+                    event_type="procedure_reinforced",
+                    agent_id=self.agent_id,
+                    stream_id=self.stream_id,
+                    memory_id=procedure_state.procedure_id,
+                    actor_class="implicit_memory_controller",
+                    source_class="internal_engine",
+                    payload={"strength": procedure_state.strength, "trust": procedure_state.trust},
+                )
             else:
                 stats.observation_deferred += 1
+                procedure_state = decay_procedure(procedure_state, decay=0.02)
+                self.lineage.emit(
+                    event_type="procedure_decayed",
+                    agent_id=self.agent_id,
+                    stream_id=self.stream_id,
+                    memory_id=procedure_state.procedure_id,
+                    actor_class="implicit_memory_controller",
+                    source_class="internal_engine",
+                    payload={"strength": procedure_state.strength, "trust": procedure_state.trust, "reason": "deferred"},
+                )
+
+            procedure_state, trust_decayed = apply_urgency_trust_decay(
+                procedure_state,
+                urgency=signals.urgency,
+            )
+            if trust_decayed:
+                self.lineage.emit(
+                    event_type="policy_threshold_updated",
+                    agent_id=self.agent_id,
+                    stream_id=self.stream_id,
+                    memory_id=procedure_state.procedure_id,
+                    actor_class="implicit_memory_controller",
+                    source_class="internal_engine",
+                    payload={
+                        "reason": "prolonged_high_urgency_trust_decay",
+                        "high_urgency_streak": procedure_state.high_urgency_streak,
+                        "trust": procedure_state.trust,
+                    },
+                )
 
         cues = self.cue_provider.pull(now=t)
         due = due_cues(now=t, cues=cues)
@@ -126,8 +184,7 @@ class ImplicitControllerLoop:
             )
             stats.cues_fired += 1
 
-            # policy-gated admission for scheduled path
-            if cue.urgency * cue.risk_signal >= self.cfg.retrieval_policy.eligibility_threshold:
+            if cue.urgency * cue.risk_signal >= self.cfg.retrieval_policy.implicit_admission_threshold:
                 self.lineage.emit(
                     event_type="implicit_admitted",
                     agent_id=self.agent_id,
@@ -150,6 +207,10 @@ class ImplicitControllerLoop:
                 )
                 stats.cues_deferred += 1
 
+        persisted = None
+        if self.procedure_state_store:
+            persisted = self.procedure_state_store.save(state=procedure_state)
+
         self.lineage.emit(
             event_type="snapshotted",
             agent_id=self.agent_id,
@@ -161,6 +222,13 @@ class ImplicitControllerLoop:
                 "snapshot_type": "implicit_loop_tick",
                 "timestamp": t.isoformat(),
                 "stats": stats.to_dict(),
+                "procedure_state": {
+                    "procedure_id": procedure_state.procedure_id,
+                    "strength": procedure_state.strength,
+                    "trust": procedure_state.trust,
+                    "high_urgency_streak": procedure_state.high_urgency_streak,
+                    "persisted": persisted is not None,
+                },
                 **self.cfg.retrieval_policy.audit_fields(),
             },
         )

@@ -34,6 +34,11 @@ class RetrievalPolicy:
     effective_at: str
     eligibility_threshold: float
     quarantine_risk_threshold: float
+    implicit_admission_threshold: float = 0.45
+    implicit_reflex_threshold: float = 0.75
+    implicit_reflex_max_actions: int = 2
+    implicit_reflex_cooldown_steps: int = 3
+    implicit_event_flood_threshold: int = 5
 
     def audit_fields(self) -> dict[str, str]:
         return {

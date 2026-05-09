@@ -7,6 +7,7 @@ from src.bootstrap import ensure_lineage_bootstrap
 from src.config import load_config
 from src.implicit_memory.controller import ObservationSignals
 from src.implicit_memory.loop import ImplicitControllerLoop
+from src.implicit_memory.procedure_state_store import S3ProcedureStateStore
 from src.implicit_memory.scheduler import ScheduledCue, now_utc
 from src.lineage_engine import LineageEngine
 from src.storage import LineageStorage
@@ -60,5 +61,6 @@ if __name__ == "__main__":
         cue_provider=StaticCueProvider(),
         agent_id="lab-agent-1",
         stream_id=f"im-loop-{now_utc().strftime('%Y%m%d%H%M%S')}",
+        procedure_state_store=S3ProcedureStateStore(cfg),
     )
     print(loop.tick())
