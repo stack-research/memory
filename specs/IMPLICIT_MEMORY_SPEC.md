@@ -1,13 +1,13 @@
 # Implicit Memory Spec (v1)
 
-Status: Draft  
+Status: Draft
 Audience: future agent loops, experiment authors, policy implementers
 
 ## 1) Purpose
 Define how the lab models **implicit memory**: automatic, state-conditioned invocation of encode/recall/action procedures without explicit user prompting.
 
 This spec exists to move from:
-- memory plumbing (encode/store/retrieve)
+- the encode/store/retrieve loop
 
 to:
 - governed memory control (admission, influence gating, decay, reflex bounds, contamination defense, replayability)

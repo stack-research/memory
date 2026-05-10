@@ -40,7 +40,7 @@ Every new event must include:
 
 ## Memory model anchor
 
-- Current/common harness baseline: encode + store + retrieve (memory plumbing).
+- Current/common harness baseline: encode + store + retrieve loop.
 - Target in this repo: governed memory control system.
 - Required controls: significance-triggered admission, eligibility-gated influence, decay/suppression/promotion, conflict persistence, poisoning quarantine, immutable lineage audit.
 

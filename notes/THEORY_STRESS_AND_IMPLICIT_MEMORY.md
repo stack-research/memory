@@ -9,7 +9,7 @@ Use falsification-oriented stress tests that can break assumptions.
 
 ## Anchor
 
-- Baseline/common systems: encode + store + retrieve (memory plumbing).
+- Baseline/common systems: encode + store + retrieve loop.
 - Target in this repo: governed memory control system.
 
 ## Operating doctrine

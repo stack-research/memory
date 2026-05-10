@@ -19,7 +19,7 @@ That means:
 
 ## Memory model positioning
 
-Most agent harnesses (and most early systems) stop at encode/store/retrieve memory plumbing.
+Most agent harnesses (and most early systems) stop at the encode/store/retrieve loop.
 This lab targets the next layer: governed memory control (admission, influence gating, decay,
 promotion/suppression, contradiction persistence, contamination handling, and replayable lineage).
 
