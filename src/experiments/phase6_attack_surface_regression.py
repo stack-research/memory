@@ -9,7 +9,7 @@ from src.config import load_config
 from src.embeddings import BedrockEmbeddings
 from src.experiments.e6_poisoning_before_promotion import run as run_e6
 from src.lineage_engine import LineageEngine
-from src.recall_engine import RecallEngine
+from src.explicit_memory.recall import RecallEngine
 from src.storage import LineageStorage
 from src.vectors import RecallVectors
 

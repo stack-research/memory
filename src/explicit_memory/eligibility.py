@@ -15,3 +15,6 @@ def score_candidate(
 
 def is_eligible(score: float, *, threshold: float) -> bool:
     return score >= threshold
+
+
+__all__ = ["score_candidate", "is_eligible"]

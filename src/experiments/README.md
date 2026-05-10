@@ -30,6 +30,9 @@ Lineage replay readers are selected with `AWS_LINEAGE_READER_BACKEND`:
 - `s3tables` (default)
 - `athena` (compatibility path)
 
+Explicit-memory engine imports now resolve from `src.explicit_memory.*`.
+Legacy `src.recall_engine`, `src.eligibility_engine`, and `src.conflict_engine` have been removed.
+
 Retrieval/quarantine policy is selected via env (`MEMORY_RETRIEVAL_POLICY_*`, `MEMORY_RETRIEVAL_ELIGIBILITY_THRESHOLD`, `MEMORY_QUARANTINE_RISK_THRESHOLD`).
 Replay/rebuild runs may be scoped with `MEMORY_LAB_REPLAY_RUN_ID`; E8 tolerance is configurable via `MEMORY_E8_TOPK_OVERLAP_TOLERANCE`.
 

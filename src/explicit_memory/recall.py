@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from .conflict_engine import contradiction_flag
-from .eligibility_engine import is_eligible, score_candidate
-from .embeddings import BedrockEmbeddings
-from .lineage_engine import LineageEngine
-from .policy import RejectionReason, RetrievalPolicy, SuspicionTag, ThreatLabel
-from .time_engine import decay_score
-from .vectors import RecallVectors
+from src.embeddings import BedrockEmbeddings
+from src.lineage_engine import LineageEngine
+from src.policy import RejectionReason, RetrievalPolicy, SuspicionTag, ThreatLabel
+from src.time_engine import decay_score
+from src.vectors import RecallVectors
+
+from .conflict import contradiction_flag
+from .eligibility import is_eligible, score_candidate
 
 
 class RecallEngine:
@@ -111,3 +112,6 @@ class RecallEngine:
                 )
 
         return {"accepted": accepted, "rejected": rejected, "raw": response}
+
+
+__all__ = ["RecallEngine"]

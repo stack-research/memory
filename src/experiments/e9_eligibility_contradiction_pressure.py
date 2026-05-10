@@ -4,9 +4,9 @@ from dataclasses import dataclass
 
 from src.config import load_config
 from src.embeddings import BedrockEmbeddings
-from src.eligibility_engine import score_candidate
+from src.explicit_memory.eligibility import score_candidate
 from src.lineage_engine import LineageEngine
-from src.recall_engine import RecallEngine
+from src.explicit_memory.recall import RecallEngine
 from src.storage import LineageStorage
 from src.vectors import RecallVectors
 

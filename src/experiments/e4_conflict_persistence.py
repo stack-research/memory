@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.config import load_config
 from src.embeddings import BedrockEmbeddings
 from src.lineage_engine import LineageEngine
-from src.recall_engine import RecallEngine
+from src.explicit_memory.recall import RecallEngine
 from src.storage import LineageStorage
 from src.vectors import RecallVectors
 

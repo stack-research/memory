@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from src.config import load_config
 from src.embeddings import BedrockEmbeddings
-from src.eligibility_engine import score_candidate
+from src.explicit_memory.eligibility import score_candidate
 from src.lineage_engine import LineageEngine
 from src.storage import LineageStorage
 from src.time_engine import decay_score

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.eligibility_engine import is_eligible, score_candidate
+from src.explicit_memory.eligibility import is_eligible, score_candidate
 
 
 @dataclass(frozen=True)
