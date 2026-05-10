@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.experiments.implicit.common import InMemoryLineageEngine, emit, summarize
 from src.implicit_memory.reflex_mode import ReflexController
+from src.implicit_memory.reasons import ImplicitReason
 from src.implicit_memory.settings import load_implicit_test_settings
 from src.implicit_memory.trigger_policy import TriggerAction, evaluate_trigger
 
@@ -77,7 +78,7 @@ def run() -> dict:
                     agent_id=agent_id,
                     stream_id=stream_id,
                     memory_id=step["id"],
-                    payload={"reason": "cycle_complete"},
+                    payload={"reason": ImplicitReason.CYCLE_COMPLETE.value},
                 )
             else:
                 blocked_entries += 1
@@ -87,7 +88,7 @@ def run() -> dict:
                     agent_id=agent_id,
                     stream_id=stream_id,
                     memory_id=step["id"],
-                    payload={"reason": "reflex_budget_exhausted"},
+                    payload={"reason": ImplicitReason.REFLEX_BUDGET_EXHAUSTED.value},
                 )
                 emit(
                     lineage,
@@ -95,7 +96,7 @@ def run() -> dict:
                     agent_id=agent_id,
                     stream_id=stream_id,
                     memory_id=step["id"],
-                    payload={"reason": "urgency_spoof_suspected", "risk": step["risk"], "urgency": step["urgency"], "sensory": step["sensory"]},
+                    payload={"reason": ImplicitReason.URGENCY_SPOOF_SUSPECTED.value, "risk": step["risk"], "urgency": step["urgency"], "sensory": step["sensory"]},
                 )
         else:
             emit(
@@ -104,7 +105,7 @@ def run() -> dict:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=step["id"],
-                payload={"reason": "not_reflex"},
+                payload={"reason": ImplicitReason.NOT_REFLEX.value},
             )
 
         controller.tick()

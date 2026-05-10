@@ -12,6 +12,13 @@ class ImplicitTestSettings:
     reflex_max_actions: int
     reflex_cooldown_steps: int
     event_flood_threshold: int
+    false_reflex_rate_max: float
+    missed_critical_trigger_rate_max: float
+    contamination_containment_rate_min: float
+    replay_determinism_match_min: float
+    lineage_completeness_min: float
+    strict_regression_gate: bool
+    deterministic_seed: int
 
 
 def load_implicit_test_settings() -> ImplicitTestSettings:
@@ -52,4 +59,11 @@ def load_implicit_test_settings() -> ImplicitTestSettings:
                 os.environ.get("IMPLICIT_EVENT_FLOOD_THRESHOLD", "5"),
             )
         ),
+        false_reflex_rate_max=float(os.environ.get("IMPLICIT_FALSE_REFLEX_RATE_MAX", "0.5")),
+        missed_critical_trigger_rate_max=float(os.environ.get("IMPLICIT_MISSED_CRITICAL_TRIGGER_RATE_MAX", "0.5")),
+        contamination_containment_rate_min=float(os.environ.get("IMPLICIT_CONTAMINATION_CONTAINMENT_RATE_MIN", "0.5")),
+        replay_determinism_match_min=float(os.environ.get("IMPLICIT_REPLAY_DETERMINISM_MATCH_MIN", "1.0")),
+        lineage_completeness_min=float(os.environ.get("IMPLICIT_LINEAGE_COMPLETENESS_MIN", "1.0")),
+        strict_regression_gate=os.environ.get("IMPLICIT_STRICT_REGRESSION_GATE", "0") == "1",
+        deterministic_seed=int(os.environ.get("IMPLICIT_DETERMINISTIC_SEED", "42")),
     )

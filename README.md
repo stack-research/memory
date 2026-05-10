@@ -26,6 +26,16 @@ promotion/suppression, contradiction persistence, contamination handling, and re
 See:
 - `specs/IMPLICIT_MEMORY_SPEC.md`
 
+## Implicit memory spec status
+
+- The implementation-gap checklist in `specs/IMPLICIT_MEMORY_SPEC.md` is currently completed.
+- The spec remains `Status: Draft`.
+- Section 17 (**Open questions**) is still active work, especially:
+  - default reflex threshold tuning by domain,
+  - decay-function tuning by procedure family,
+  - intervention-hook tuning without human bottlenecks,
+  - avoiding trigger-policy overfitting to known attacks.
+
 ## Core concepts
 
 1. **Memory ≠ reality**

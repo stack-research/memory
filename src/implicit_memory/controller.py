@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 from .contamination import split_reality_detected
+from .reasons import ImplicitReason
 from .trigger_policy import TriggerAction, TriggerDecision, evaluate_trigger
 
 
@@ -54,7 +55,7 @@ def process_observation(
             actor_class="implicit_memory_controller",
             source_class="sensor_fusion",
             payload={
-                "reason": "split_reality_detected",
+                "reason": ImplicitReason.SPLIT_REALITY_DETECTED.value,
                 "sensor_values": signals.sensor_values,
                 "urgency": signals.urgency,
                 "risk_signal": signals.risk_signal,
@@ -67,9 +68,13 @@ def process_observation(
             memory_id=memory_id,
             actor_class="implicit_memory_controller",
             source_class="sensor_fusion",
-            payload={"reason": "split_reality_detected"},
+            payload={"reason": ImplicitReason.SPLIT_REALITY_DETECTED.value},
         )
-        return TriggerDecision(action=TriggerAction.DEFER, score=0.0, reasons=["split_reality_detected"])
+        return TriggerDecision(
+            action=TriggerAction.DEFER,
+            score=0.0,
+            reasons=[ImplicitReason.SPLIT_REALITY_DETECTED.value],
+        )
 
     trig = evaluate_trigger(
         prediction_error=signals.prediction_error,

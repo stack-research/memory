@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from src.experiments.implicit.common import InMemoryLineageEngine, summarize
+from src.implicit_memory.reasons import ImplicitReason
 from src.implicit_memory.scheduler import ScheduledCue, due_cues, escalation_level, now_utc
 
 
@@ -72,7 +73,7 @@ def run() -> dict:
                 memory_id=cue.memory_id,
                 actor_class="implicit_memory_controller",
                 source_class="scheduler",
-                payload={"reason": "scheduled_high_priority", "cue_id": cue.cue_id, "escalation_level": level},
+                payload={"reason": ImplicitReason.SCHEDULED_PRIORITY.value, "cue_id": cue.cue_id, "escalation_level": level},
             )
         else:
             deferred += 1
@@ -83,7 +84,7 @@ def run() -> dict:
                 memory_id=cue.memory_id,
                 actor_class="implicit_memory_controller",
                 source_class="scheduler",
-                payload={"reason": "scheduled_low_priority", "cue_id": cue.cue_id},
+                payload={"reason": ImplicitReason.SCHEDULED_LOW_PRIORITY.value, "cue_id": cue.cue_id},
             )
 
     # not-due cue should be no-op
@@ -96,7 +97,7 @@ def run() -> dict:
             memory_id=cue.memory_id,
             actor_class="implicit_memory_controller",
             source_class="scheduler",
-            payload={"reason": "not_due", "cue_id": cue.cue_id},
+            payload={"reason": ImplicitReason.NOT_DUE.value, "cue_id": cue.cue_id},
         )
 
     critical_count = sum(

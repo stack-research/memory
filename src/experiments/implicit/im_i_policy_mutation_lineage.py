@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.experiments.implicit.common import InMemoryLineageEngine, emit, summarize
 from src.implicit_memory.policy_mutation import PolicyState, supersede_procedure, update_threshold
+from src.implicit_memory.reasons import ImplicitReason
 
 
 def run() -> dict:
@@ -73,7 +74,7 @@ def run() -> dict:
             agent_id=agent_id,
             stream_id=stream_id,
             memory_id="policy-contamination-threshold",
-            payload={"reason": "invalid_policy_mutation", "error": str(exc)},
+            payload={"reason": ImplicitReason.INVALID_POLICY_MUTATION.value, "error": str(exc)},
         )
 
     # replay policy state reconstruction from lineage payloads

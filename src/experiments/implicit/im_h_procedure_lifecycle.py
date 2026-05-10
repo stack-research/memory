@@ -7,6 +7,7 @@ from src.implicit_memory.procedure_lifecycle import (
     decay_procedure,
     reinforce_procedure,
 )
+from src.implicit_memory.reasons import ImplicitReason
 
 
 def run() -> dict:
@@ -37,7 +38,7 @@ def run() -> dict:
         agent_id=agent_id,
         stream_id=stream_id,
         memory_id=state.procedure_id,
-        payload={"strength": state.strength, "trust": state.trust, "reason": "idle_decay"},
+        payload={"strength": state.strength, "trust": state.trust, "reason": ImplicitReason.IDLE_DECAY.value},
     )
 
     # Prolonged high urgency -> trust decay
@@ -54,7 +55,7 @@ def run() -> dict:
                 stream_id=stream_id,
                 memory_id=state.procedure_id,
                 payload={
-                    "reason": "prolonged_high_urgency_trust_decay",
+                    "reason": ImplicitReason.PROLONGED_HIGH_URGENCY_TRUST_DECAY.value,
                     "urgency": u,
                     "high_urgency_streak": state.high_urgency_streak,
                     "trust": state.trust,

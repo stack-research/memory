@@ -14,6 +14,7 @@ from .policy_mutation import PolicyState, supersede_procedure, update_threshold
 from .controller import ObservationSignals, process_observation
 from .scheduler import ScheduledCue, due_cues, escalation_level, now_utc
 from .loop import ImplicitControllerLoop
+from .reasons import ImplicitReason
 
 __all__ = [
     "admission_score",
@@ -41,4 +42,5 @@ __all__ = [
     "escalation_level",
     "now_utc",
     "ImplicitControllerLoop",
+    "ImplicitReason",
 ]

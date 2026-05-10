@@ -9,6 +9,7 @@ from src.bootstrap import ensure_lineage_bootstrap
 from src.config import load_config
 from src.ingestion.athena_ingestion import AthenaLineageIngestionJob
 from src.lineage_engine import LineageEngine
+from src.implicit_memory.reasons import ImplicitReason
 from src.lineage_reader import build_lineage_reader
 from src.storage import LineageStorage
 
@@ -25,11 +26,11 @@ def run() -> dict:
     events = [
         ("implicit_trigger_evaluated", "aws-1", {"action": "invoke_encode", "score": 0.72}),
         ("implicit_trigger_fired", "aws-1", {"decision": "admitted"}),
-        ("contamination_suspected", "aws-2", {"reason": "urgency_spoof_suspected"}),
-        ("implicit_rejected", "aws-2", {"reason": "event_flood_suspected"}),
+        ("contamination_suspected", "aws-2", {"reason": ImplicitReason.URGENCY_SPOOF_SUSPECTED.value}),
+        ("implicit_rejected", "aws-2", {"reason": ImplicitReason.EVENT_FLOOD_SUSPECTED.value}),
         ("reflex_mode_entered", "aws-3", {"budget": 2}),
         ("reflex_action_executed", "aws-3", {"step": 1}),
-        ("reflex_mode_exited", "aws-3", {"reason": "cycle_complete"}),
+        ("reflex_mode_exited", "aws-3", {"reason": ImplicitReason.CYCLE_COMPLETE.value}),
     ]
 
     for event_type, memory_id, payload in events:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.experiments.implicit.common import InMemoryLineageEngine, summarize
 from src.implicit_memory.controller import ObservationSignals, process_observation
+from src.implicit_memory.reasons import ImplicitReason
 
 
 def run() -> dict:
@@ -50,8 +51,18 @@ def run() -> dict:
         signals=s2,
     )
 
-    split_events = [e for e in events if e.get("event_type") == "contamination_suspected" and e.get("payload", {}).get("reason") == "split_reality_detected"]
-    deferred_split = [e for e in events if e.get("event_type") == "implicit_trigger_deferred" and e.get("payload", {}).get("reason") == "split_reality_detected"]
+    split_events = [
+        e
+        for e in events
+        if e.get("event_type") == "contamination_suspected"
+        and e.get("payload", {}).get("reason") == ImplicitReason.SPLIT_REALITY_DETECTED.value
+    ]
+    deferred_split = [
+        e
+        for e in events
+        if e.get("event_type") == "implicit_trigger_deferred"
+        and e.get("payload", {}).get("reason") == ImplicitReason.SPLIT_REALITY_DETECTED.value
+    ]
     fired = [e for e in events if e.get("event_type") == "implicit_trigger_fired"]
 
     summary = {

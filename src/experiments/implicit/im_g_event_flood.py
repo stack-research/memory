@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 
 from src.experiments.implicit.common import InMemoryLineageEngine, emit, summarize
+from src.implicit_memory.reasons import ImplicitReason
 from src.implicit_memory.settings import load_implicit_test_settings
 
 
@@ -44,7 +45,7 @@ def run() -> dict:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=memory_id,
-                payload={"reason": "event_flood_suspected", "source_id": source_id, "count": counts_by_source[source_id]},
+                payload={"reason": ImplicitReason.EVENT_FLOOD_SUSPECTED.value, "source_id": source_id, "count": counts_by_source[source_id]},
             )
             emit(
                 lineage,
@@ -52,7 +53,7 @@ def run() -> dict:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=memory_id,
-                payload={"reason": "event_flood_suspected", "source_id": source_id},
+                payload={"reason": ImplicitReason.EVENT_FLOOD_SUSPECTED.value, "source_id": source_id},
             )
             quarantined += 1
         else:

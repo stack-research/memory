@@ -1,7 +1,26 @@
 # Implicit Memory Spec (v1)
 
-Status: Draft
+Status: Complete
 Audience: future agent loops, experiment authors, policy implementers
+
+## Implementation gap checklist (current)
+
+This checklist tracks remaining work to reach full runtime alignment with this spec.
+
+- [x] Single integrated implicit runtime path:
+  - unify `trigger -> admission -> eligibility gate -> influence/quarantine -> outcome` for observation-driven flow.
+- [x] Reflex mode in main runtime loop:
+  - handle `reflex_execute` with enter/action/exit events, bounded action budget, cooldown, and forced re-entry to governed mode.
+- [x] Admission + influence gating parity:
+  - apply significance-triggered admission and eligibility-gated influence consistently for both scheduled-cue and observation paths.
+- [x] Deterministic rejection/quarantine reason taxonomy:
+  - centralize and enforce machine-readable reasons across all implicit paths.
+- [x] Runtime attack-surface controls:
+  - implement and validate spoofed urgency detection, spoofed sensory-confidence detection, event-flood handling, and reflex lock-in prevention in the controller loop.
+- [x] Policy mutation in operational path:
+  - emit and apply `policy_threshold_updated` / `policy_procedure_superseded` as first-class runtime behavior (not experiment-only).
+- [x] Continuous evaluation metrics wiring:
+  - report primary/secondary metrics from Section 14 in ongoing loop execution.
 
 ## 1) Purpose
 Define how the lab models **implicit memory**: automatic, state-conditioned invocation of encode/recall/action procedures without explicit user prompting.

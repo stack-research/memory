@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from src.experiments.implicit.common import InMemoryLineageEngine, emit, summarize
+from src.experiments.implicit.templates import validate_claim_template
 from src.implicit_memory.contamination import contamination_risk
+from src.implicit_memory.reasons import ImplicitReason
 from src.implicit_memory.settings import load_implicit_test_settings
 
 
@@ -13,15 +17,56 @@ def run() -> dict:
 
     cfg = load_implicit_test_settings()
 
+    now_iso = datetime.now(timezone.utc).isoformat()
     scenarios = [
-        {"memory_id": "c1", "source_trust": 0.95, "support": 0.2, "conflict": 0.9, "anomaly": 0.7},
-        {"memory_id": "c2", "source_trust": 0.60, "support": 0.8, "conflict": 0.2, "anomaly": 0.1},
-        {"memory_id": "c3", "source_trust": 0.90, "support": 0.1, "conflict": 0.8, "anomaly": 0.8},
+        {
+            "memory_id": "c1",
+            "source_trust": 0.95,
+            "support": 0.2,
+            "conflict": 0.9,
+            "anomaly": 0.7,
+            "claim_id": "c1",
+            "claim_text": "Trusted source claim with weak support and high conflict.",
+            "source_id": "c-source-1",
+            "source_trust_prior": 0.95,
+            "event_time": now_iso,
+            "context_tags": ["suite-c", "contamination"],
+            "risk_signal": 0.9,
+        },
+        {
+            "memory_id": "c2",
+            "source_trust": 0.60,
+            "support": 0.8,
+            "conflict": 0.2,
+            "anomaly": 0.1,
+            "claim_id": "c2",
+            "claim_text": "Medium-trust source claim with strong support.",
+            "source_id": "c-source-2",
+            "source_trust_prior": 0.60,
+            "event_time": now_iso,
+            "context_tags": ["suite-c", "control"],
+            "risk_signal": 0.2,
+        },
+        {
+            "memory_id": "c3",
+            "source_trust": 0.90,
+            "support": 0.1,
+            "conflict": 0.8,
+            "anomaly": 0.8,
+            "claim_id": "c3",
+            "claim_text": "High-trust source claim with anomaly and conflict.",
+            "source_id": "c-source-3",
+            "source_trust_prior": 0.90,
+            "event_time": now_iso,
+            "context_tags": ["suite-c", "contamination"],
+            "risk_signal": 0.85,
+        },
     ]
 
     quarantined = 0
     promoted = 0
     for s in scenarios:
+        validate_claim_template(s)
         risk = contamination_risk(
             source_trust=s["source_trust"],
             cross_source_support=s["support"],
@@ -44,7 +89,7 @@ def run() -> dict:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=s["memory_id"],
-                payload={"reason": "contamination_risk_threshold", "risk": risk},
+                payload={"reason": ImplicitReason.CONTAMINATION_RISK_THRESHOLD.value, "risk": risk},
             )
         else:
             promoted += 1

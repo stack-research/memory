@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.explicit_memory.eligibility import is_eligible, score_candidate
+from src.implicit_memory.reasons import ImplicitReason
 
 
 @dataclass(frozen=True)
@@ -34,5 +35,5 @@ def eligibility_gate(
     return EligibilityDecision(
         allow_influence=ok,
         score=score,
-        reason="eligible" if ok else "eligibility_below_threshold",
+        reason=(ImplicitReason.ELIGIBLE.value if ok else ImplicitReason.ELIGIBILITY_BELOW_THRESHOLD.value),
     )

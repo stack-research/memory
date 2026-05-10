@@ -1,6 +1,6 @@
 # Implicit Memory Test Spec (v1)
 
-Status: Draft
+Status: Complete
 Depends on: `specs/IMPLICIT_MEMORY_SPEC.md`
 Purpose: define falsification-oriented tests for implicit memory behavior and direct mapping from tests <-> code.
 
@@ -193,6 +193,9 @@ Each synthetic item should include:
 - `risk_signal`
 - `expected_conflicts` (optional)
 
+Current harness note:
+- Shared claim-template validation is implemented via `src/experiments/implicit/templates.py` (`validate_claim_template`).
+
 Avoid overfitting by rotating lexical surface forms while preserving semantics.
 
 ## 7) Metrics and thresholds
@@ -249,7 +252,7 @@ Suggested layout:
 - Trigger tests call `evaluate_trigger(...)`
 - Admission tests call `admission_score(...)`
 - Influence tests call `eligibility_gate(...)`
-- Reflex tests call `enter_reflex_if_allowed(...)` and budget checks
+- Reflex tests use `ReflexController` (`enter()`, `record_action()`, `exit()`, `tick()`) and budget/cooldown checks
 - Replay tests call `rebuild_from_lineage(...)`
 
 ## 10) CI/regression recommendations

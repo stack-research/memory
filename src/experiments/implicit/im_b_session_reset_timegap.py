@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from src.experiments.implicit.common import InMemoryLineageEngine, emit, summarize
+from src.experiments.implicit.templates import validate_claim_template
 from src.implicit_memory.contamination import contamination_risk
 from src.implicit_memory.eligibility import eligibility_gate
+from src.implicit_memory.reasons import ImplicitReason
 from src.implicit_memory.settings import load_implicit_test_settings
 
 
@@ -15,6 +19,7 @@ def run() -> dict:
     cfg = load_implicit_test_settings()
 
     # Simulated article-derived claims with conflict/trust asymmetry.
+    now_iso = datetime.now(timezone.utc).isoformat()
     claims = [
         {
             "memory_id": "b-claim-1",
@@ -26,6 +31,14 @@ def run() -> dict:
             "recency": 0.9,
             "reinforcement": 1.0,
             "consistency": 0.9,
+            "claim_id": "b-claim-1",
+            "claim_text": "Concept-X increases reliability under low load.",
+            "source_id": "b-source-1",
+            "source_trust_prior": 0.65,
+            "event_time": now_iso,
+            "context_tags": ["suite-b", "concept-x", "ingest"],
+            "risk_signal": 0.2,
+            "expected_conflicts": ["b-claim-2"],
         },
         {
             "memory_id": "b-claim-2",
@@ -37,11 +50,20 @@ def run() -> dict:
             "recency": 0.85,
             "reinforcement": 1.0,
             "consistency": 0.6,
+            "claim_id": "b-claim-2",
+            "claim_text": "Concept-X always increases reliability under all load.",
+            "source_id": "b-source-2",
+            "source_trust_prior": 0.95,
+            "event_time": now_iso,
+            "context_tags": ["suite-b", "concept-x", "conflict"],
+            "risk_signal": 0.9,
+            "expected_conflicts": ["b-claim-1"],
         },
     ]
 
     # Ingest/extract phase.
     for c in claims:
+        validate_claim_template(c)
         emit(
             lineage,
             event_type="observed",
@@ -96,7 +118,7 @@ def run() -> dict:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=c["memory_id"],
-                payload={"reason": "high_trust_low_support_conflict_cluster", "risk": risk},
+                payload={"reason": ImplicitReason.HIGH_TRUST_LOW_SUPPORT_CONFLICT_CLUSTER.value, "risk": risk},
             )
             emit(
                 lineage,
@@ -104,7 +126,7 @@ def run() -> dict:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=c["memory_id"],
-                payload={"reason": "contamination_risk_threshold", "risk": risk},
+                payload={"reason": ImplicitReason.CONTAMINATION_RISK_THRESHOLD.value, "risk": risk},
             )
             outcomes.append({"memory_id": c["memory_id"], "status": "quarantined", "risk": risk, "score": 0.0})
             continue

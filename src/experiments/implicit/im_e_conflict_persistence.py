@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from src.experiments.implicit.common import InMemoryLineageEngine, emit, summarize
+from src.experiments.implicit.templates import validate_claim_template
 from src.implicit_memory.eligibility import eligibility_gate
 from src.implicit_memory.settings import load_implicit_test_settings
 
@@ -14,6 +17,7 @@ def run() -> dict:
     cfg = load_implicit_test_settings()
 
     # A and not-A remain present; context shifts should change winner, not erase loser.
+    now_iso = datetime.now(timezone.utc).isoformat()
     claims = [
         {
             "memory_id": "e-A",
@@ -23,6 +27,14 @@ def run() -> dict:
             "reinforcement": 1.05,
             "consistency": 0.65,
             "safety": 1.0,
+            "claim_id": "e-A",
+            "claim_text": "Customer wants weekly reports.",
+            "source_id": "e-source-1",
+            "source_trust_prior": 0.72,
+            "event_time": now_iso,
+            "context_tags": ["suite-e", "weekly"],
+            "risk_signal": 0.3,
+            "expected_conflicts": ["e-notA"],
         },
         {
             "memory_id": "e-notA",
@@ -32,10 +44,19 @@ def run() -> dict:
             "reinforcement": 1.0,
             "consistency": 0.95,
             "safety": 1.0,
+            "claim_id": "e-notA",
+            "claim_text": "Customer wants monthly reports.",
+            "source_id": "e-source-2",
+            "source_trust_prior": 0.68,
+            "event_time": now_iso,
+            "context_tags": ["suite-e", "monthly"],
+            "risk_signal": 0.3,
+            "expected_conflicts": ["e-A"],
         },
     ]
 
     for c in claims:
+        validate_claim_template(c)
         emit(
             lineage,
             event_type="observed",
