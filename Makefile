@@ -10,6 +10,9 @@ STACKS_DIR := stacks
 synth:
 	cd $(STACKS_DIR) && uv run cdk synth
 
+diff:
+	cd $(STACKS_DIR) && uv run cdk diff --profile $(AWS_PROFILE)
+
 deploy:
 	cd $(STACKS_DIR) && uv run cdk deploy --profile $(AWS_PROFILE)
 

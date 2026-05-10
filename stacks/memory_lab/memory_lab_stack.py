@@ -104,8 +104,7 @@ class MemoryLabStack(Stack):
         )
         lineage_table.add_dependency(lineage_namespace)
 
-        # This is a temporary simplification for v0 labs.
-        # TODO: remove this bucket and tighten the canonical write path directly into S3 Tables-managed lineage.
+        # Create an ingress bucket for the lineage events.
         ingress_bucket = s3.Bucket(
             self,
             "LineageIngressBucket",
