@@ -1,11 +1,13 @@
 import os
 
-from aws_cdk import RemovalPolicy, Stack
+from aws_cdk import CfnOutput, Duration, RemovalPolicy, Stack
 from aws_cdk import aws_athena as athena
+from aws_cdk import aws_events as events
 from aws_cdk import aws_glue as glue
 from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_s3tables as s3tables
 from aws_cdk import aws_s3vectors as s3vectors
+from aws_cdk import aws_sqs as sqs
 from constructs import Construct
 
 
@@ -30,6 +32,10 @@ class MemoryLabStack(Stack):
 
         athena_workgroup_name = os.environ.get("AWS_ATHENA_WORKGROUP_NAME", "memory-lab")
         athena_database_name = os.environ.get("AWS_ATHENA_DATABASE", "memory_lab")
+
+        lab_event_bus_name = os.environ.get("MEMORY_LAB_EVENT_BUS_NAME", "memory-lab")
+        lab_fifo_queue_name = os.environ.get("MEMORY_LAB_FIFO_QUEUE_NAME", "memory-lab.fifo")
+        lab_dlq_name = os.environ.get("MEMORY_LAB_DLQ_NAME", "memory-lab-dlq.fifo")
 
         index_name = os.environ.get("AWS_S3_VECTOR_INDEX_NAME", "memories-v1")
         index_dimension = int(os.environ.get("AWS_S3_VECTOR_INDEX_DIMENSION", "1536"))
@@ -111,6 +117,37 @@ class MemoryLabStack(Stack):
             removal_policy=RemovalPolicy.RETAIN,
         )
 
+        # Scheduled cue control-plane resources.
+        lab_event_bus = events.EventBus(
+            self,
+            "LabEventBus",
+            event_bus_name=lab_event_bus_name,
+        )
+
+        lab_dlq = sqs.Queue(
+            self,
+            "LabFifoDlq",
+            queue_name=lab_dlq_name,
+            fifo=True,
+            content_based_deduplication=True,
+            encryption=sqs.QueueEncryption.SQS_MANAGED,
+            enforce_ssl=True,
+            removal_policy=RemovalPolicy.RETAIN,
+        )
+
+        lab_fifo_queue = sqs.Queue(
+            self,
+            "LabFifoQueue",
+            queue_name=lab_fifo_queue_name,
+            fifo=True,
+            content_based_deduplication=True,
+            encryption=sqs.QueueEncryption.SQS_MANAGED,
+            enforce_ssl=True,
+            dead_letter_queue=sqs.DeadLetterQueue(max_receive_count=5, queue=lab_dlq),
+            visibility_timeout=Duration.seconds(60),
+            removal_policy=RemovalPolicy.RETAIN,
+        )
+
         # Create a results bucket for the Athena queries.
         athena_results_bucket = s3.Bucket(
             self,
@@ -149,3 +186,7 @@ class MemoryLabStack(Stack):
         )
         athena_workgroup.node.add_dependency(glue_db)
         athena_workgroup.node.add_dependency(ingress_bucket)
+
+        CfnOutput(self, "LabEventBusName", value=lab_event_bus.event_bus_name)
+        CfnOutput(self, "LabFifoQueueUrl", value=lab_fifo_queue.queue_url)
+        CfnOutput(self, "LabFifoDlqUrl", value=lab_dlq.queue_url)
