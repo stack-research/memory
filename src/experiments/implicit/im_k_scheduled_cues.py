@@ -73,7 +73,19 @@ def run() -> dict:
                 memory_id=cue.memory_id,
                 actor_class="implicit_memory_controller",
                 source_class="scheduler",
-                payload={"reason": ImplicitReason.SCHEDULED_PRIORITY.value, "cue_id": cue.cue_id, "escalation_level": level},
+                payload={
+                    "reason": ImplicitReason.SCHEDULED_PRIORITY.value,
+                    "cue_id": cue.cue_id,
+                    "escalation_level": level,
+                    "eligibility_score": 1.0,
+                    "uncertainty_triple": {
+                        "confidence_in_claim": 1.0,
+                        "confidence_in_recall_process": 1.0,
+                        "confidence_in_provenance_chain": 1.0,
+                    },
+                    "combined_score": 1.0,
+                    "dominant_axis": "claim",
+                },
             )
         else:
             deferred += 1

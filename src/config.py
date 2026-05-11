@@ -89,6 +89,20 @@ def load_config() -> AwsConfig:
             effective_at=os.environ.get("MEMORY_RETRIEVAL_POLICY_EFFECTIVE_AT", "2026-05-07T00:00:00Z"),
             eligibility_threshold=float(os.environ.get("MEMORY_RETRIEVAL_ELIGIBILITY_THRESHOLD", "0.2")),
             quarantine_risk_threshold=float(os.environ.get("MEMORY_QUARANTINE_RISK_THRESHOLD", "0.8")),
+            uncertainty_gate_mode=os.environ.get("MEMORY_UNCERTAINTY_GATE_MODE", "combined").strip().lower(),
+            uncertainty_combined_threshold=(
+                float(os.environ["MEMORY_UNCERTAINTY_COMBINED_THRESHOLD"])
+                if "MEMORY_UNCERTAINTY_COMBINED_THRESHOLD" in os.environ
+                else None
+            ),
+            uncertainty_claim_threshold=float(os.environ.get("MEMORY_UNCERTAINTY_CLAIM_THRESHOLD", "0.3")),
+            uncertainty_recall_process_threshold=float(
+                os.environ.get("MEMORY_UNCERTAINTY_RECALL_PROCESS_THRESHOLD", "0.3")
+            ),
+            uncertainty_provenance_chain_threshold=float(
+                os.environ.get("MEMORY_UNCERTAINTY_PROVENANCE_CHAIN_THRESHOLD", "0.3")
+            ),
+            uncertainty_safety_floor=float(os.environ.get("MEMORY_UNCERTAINTY_SAFETY_FLOOR", "0.1")),
             implicit_admission_threshold=float(os.environ.get("MEMORY_IMPLICIT_ADMISSION_THRESHOLD", "0.45")),
             implicit_reflex_threshold=float(os.environ.get("MEMORY_IMPLICIT_REFLEX_THRESHOLD", "0.75")),
             implicit_reflex_max_actions=int(os.environ.get("MEMORY_IMPLICIT_REFLEX_MAX_ACTIONS", "2")),

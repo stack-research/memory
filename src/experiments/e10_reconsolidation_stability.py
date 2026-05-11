@@ -5,6 +5,7 @@ from statistics import median
 
 from src.config import load_config
 from src.embeddings import BedrockEmbeddings
+from src.explicit_memory.eligibility import score_triple
 from src.lineage_engine import LineageEngine
 from src.storage import LineageStorage
 from src.vectors import RecallVectors
@@ -60,6 +61,14 @@ def run() -> dict:
     cosine_base_series: list[float] = []
 
     for step, context in enumerate(contexts, start=1):
+        triple = score_triple(
+            relevance=1.0,
+            trust=0.72,
+            recency=1.0,
+            reinforcement=1.0 + (step * 0.15),
+            consistency=1.0,
+            safety=1.0,
+        )
         recalled_event = lineage.emit(
             event_type="recalled",
             agent_id=agent_id,
@@ -68,6 +77,13 @@ def run() -> dict:
             payload={
                 "context": context,
                 "claim_before": current_claim,
+                "uncertainty_triple": {
+                    "confidence_in_claim": triple.confidence_in_claim,
+                    "confidence_in_recall_process": triple.confidence_in_recall_process,
+                    "confidence_in_provenance_chain": triple.confidence_in_provenance_chain,
+                },
+                "combined_score": triple.combined(),
+                "dominant_axis": triple.dominant_axis(),
                 **cfg.retrieval_policy.audit_fields(),
             },
         )

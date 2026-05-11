@@ -28,6 +28,10 @@ from src.experiments.implicit.im_h_procedure_lifecycle import run as run_im_h
 from src.experiments.implicit.im_i_policy_mutation_lineage import run as run_im_i
 from src.experiments.implicit.im_j_split_reality_integration import run as run_im_j
 from src.experiments.implicit.im_k_scheduled_cues import run as run_im_k
+from src.experiments.implicit.im_l_uncertainty_gate_modes import run as run_im_l
+from src.experiments.implicit.im_m_provenance_decay import run as run_im_m
+from src.experiments.implicit.im_n_recall_degradation import run as run_im_n
+from src.experiments.implicit.im_o_claim_implausibility import run as run_im_o
 from src.experiments.implicit.im_regression import run as run_im_regression
 from src.storage import LineageStorage
 
@@ -57,6 +61,10 @@ EXPERIMENTS = {
     "im-i": run_im_i,
     "im-j": run_im_j,
     "im-k": run_im_k,
+    "im-l": run_im_l,
+    "im-m": run_im_m,
+    "im-n": run_im_n,
+    "im-o": run_im_o,
     "im-regression": run_im_regression,
 }
 

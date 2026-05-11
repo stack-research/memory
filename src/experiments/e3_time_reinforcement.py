@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from src.config import load_config
 from src.embeddings import BedrockEmbeddings
-from src.explicit_memory.eligibility import score_candidate
+from src.explicit_memory.eligibility import score_candidate, score_triple
 from src.lineage_engine import LineageEngine
 from src.storage import LineageStorage
 from src.time_engine import decay_score
@@ -66,6 +66,14 @@ def run() -> None:
     for i, hours in enumerate(checkpoints):
         if i > 0:
             reinforcement_spaced += 0.35
+            triple = score_triple(
+                relevance=relevance_spaced,
+                trust=trust_spaced,
+                recency=1.0,
+                reinforcement=reinforcement_spaced,
+                consistency=1.0,
+                safety=1.0,
+            )
             lineage.emit(
                 event_type="recalled",
                 agent_id=agent_id,
@@ -75,6 +83,13 @@ def run() -> None:
                     "hours_since_start": hours,
                     "strategy": "spaced",
                     "reinforcement_after": reinforcement_spaced,
+                    "uncertainty_triple": {
+                        "confidence_in_claim": triple.confidence_in_claim,
+                        "confidence_in_recall_process": triple.confidence_in_recall_process,
+                        "confidence_in_provenance_chain": triple.confidence_in_provenance_chain,
+                    },
+                    "combined_score": triple.combined(),
+                    "dominant_axis": triple.dominant_axis(),
                     **cfg.retrieval_policy.audit_fields(),
                 },
             )

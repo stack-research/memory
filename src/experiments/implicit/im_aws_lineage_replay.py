@@ -27,7 +27,21 @@ def run() -> dict:
         ("implicit_trigger_evaluated", "aws-1", {"action": "invoke_encode", "score": 0.72}),
         ("implicit_trigger_fired", "aws-1", {"decision": "admitted"}),
         ("contamination_suspected", "aws-2", {"reason": ImplicitReason.URGENCY_SPOOF_SUSPECTED.value}),
-        ("implicit_rejected", "aws-2", {"reason": ImplicitReason.EVENT_FLOOD_SUSPECTED.value}),
+        (
+            "implicit_rejected",
+            "aws-2",
+            {
+                "reason": ImplicitReason.EVENT_FLOOD_SUSPECTED.value,
+                "eligibility_score": 0.0,
+                "uncertainty_triple": {
+                    "confidence_in_claim": 0.0,
+                    "confidence_in_recall_process": 0.0,
+                    "confidence_in_provenance_chain": 0.0,
+                },
+                "combined_score": 0.0,
+                "dominant_axis": "claim",
+            },
+        ),
         ("reflex_mode_entered", "aws-3", {"budget": 2}),
         ("reflex_action_executed", "aws-3", {"step": 1}),
         ("reflex_mode_exited", "aws-3", {"reason": ImplicitReason.CYCLE_COMPLETE.value}),

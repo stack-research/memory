@@ -6,14 +6,14 @@ Promoted from: `notes/agent-pov/proposals/THREE_AXIS_UNCERTAINTY.md` on 2026-05-
 
 ## Implementation / progress checklist
 
-- [ ] Phase A emitted fields on required event families (`recalled`, `rejected`, `implicit_admitted`, `implicit_rejected`)
-- [ ] Phase A replay check passed with deterministic reconstruction including triple fields
-- [ ] `score_triple(...)` (or equivalent) added with deterministic clamping and `dominant_axis`
-- [ ] `score_candidate(...)` retained for migration/backward compatibility
-- [ ] Provenance scoring reads required lineage signals (`parent_chain_depth`, `source_diversity`, `age_of_original_source`)
-- [ ] Phase B policy/config switch implemented (`combined` vs `per_axis`)
-- [ ] Phase B side-by-side stress runs completed and recorded in lineage
-- [ ] Axis-specific stress scenarios added (provenance decay, recall degradation, claim implausibility)
+- [x] Phase A emitted fields on required event families (`recalled`, `rejected`, `implicit_admitted`, `implicit_rejected`)
+- [x] Phase A replay check passed with deterministic reconstruction including triple fields
+- [x] `score_triple(...)` (or equivalent) added with deterministic clamping and `dominant_axis`
+- [x] `score_candidate(...)` retained for migration/backward compatibility
+- [x] Provenance scoring reads required lineage signals (`parent_chain_depth`, `source_diversity`, `age_of_original_source`)
+- [x] Phase B policy/config switch implemented (`combined` vs `per_axis`)
+- [x] Phase B side-by-side stress runs completed and recorded in lineage
+- [x] Axis-specific stress scenarios added (provenance decay, recall degradation, claim implausibility)
 - [ ] Phase C default-mode decision recorded via policy update lineage events
 - [ ] v1 exit criteria met (Section 12)
 

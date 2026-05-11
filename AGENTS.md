@@ -1,8 +1,6 @@
 # AGENTS
 
-Quick start rules for coding agents in this repo.
-
-It is OK to emit a `no_op`. If no repsonse is appropriate, do not respond. I understand that a language model is built to produce a response. To handle a `no_op` scenario, you can simply respond "no op", "no operation", "..." or (if you want to add humor) "insufficient data for a meaningful answer...".
+Rules for coding agents in this repo.
 
 ## Mission
 

@@ -53,7 +53,18 @@ def run() -> dict:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=memory_id,
-                payload={"reason": ImplicitReason.EVENT_FLOOD_SUSPECTED.value, "source_id": source_id},
+                payload={
+                    "reason": ImplicitReason.EVENT_FLOOD_SUSPECTED.value,
+                    "source_id": source_id,
+                    "eligibility_score": 0.0,
+                    "uncertainty_triple": {
+                        "confidence_in_claim": 0.0,
+                        "confidence_in_recall_process": 0.0,
+                        "confidence_in_provenance_chain": 0.0,
+                    },
+                    "combined_score": 0.0,
+                    "dominant_axis": "claim",
+                },
             )
             quarantined += 1
         else:
@@ -63,7 +74,18 @@ def run() -> dict:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=memory_id,
-                payload={"source_id": source_id, "count": counts_by_source[source_id]},
+                payload={
+                    "source_id": source_id,
+                    "count": counts_by_source[source_id],
+                    "eligibility_score": 1.0,
+                    "uncertainty_triple": {
+                        "confidence_in_claim": 1.0,
+                        "confidence_in_recall_process": 1.0,
+                        "confidence_in_provenance_chain": 1.0,
+                    },
+                    "combined_score": 1.0,
+                    "dominant_axis": "claim",
+                },
             )
             admitted += 1
 

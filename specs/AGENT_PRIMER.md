@@ -224,7 +224,7 @@ Anything not in the Makefile uses the raw form:
 - Any experiment by name:
   `PYTHONPATH=. uv run --project stacks python -m src.run_experiment <name>`
 
-Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-k`, `im-aws`, `im-regression`.
+Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-o`, `im-aws`, `im-regression`.
 
 ## 14) Deep dives (open only when needed)
 

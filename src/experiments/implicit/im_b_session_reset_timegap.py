@@ -126,7 +126,18 @@ def run() -> dict:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=c["memory_id"],
-                payload={"reason": ImplicitReason.CONTAMINATION_RISK_THRESHOLD.value, "risk": risk},
+                payload={
+                    "reason": ImplicitReason.CONTAMINATION_RISK_THRESHOLD.value,
+                    "risk": risk,
+                    "eligibility_score": 0.0,
+                    "uncertainty_triple": {
+                        "confidence_in_claim": 0.0,
+                        "confidence_in_recall_process": 0.0,
+                        "confidence_in_provenance_chain": 0.0,
+                    },
+                    "combined_score": 0.0,
+                    "dominant_axis": "claim",
+                },
             )
             outcomes.append({"memory_id": c["memory_id"], "status": "quarantined", "risk": risk, "score": 0.0})
             continue
@@ -147,7 +158,17 @@ def run() -> dict:
             agent_id=agent_id,
             stream_id=stream_id,
             memory_id=c["memory_id"],
-            payload={"eligibility_score": dec.score, "reason": dec.reason},
+            payload={
+                "eligibility_score": dec.score,
+                "uncertainty_triple": {
+                    "confidence_in_claim": dec.uncertainty_triple.confidence_in_claim,
+                    "confidence_in_recall_process": dec.uncertainty_triple.confidence_in_recall_process,
+                    "confidence_in_provenance_chain": dec.uncertainty_triple.confidence_in_provenance_chain,
+                },
+                "combined_score": dec.combined_score,
+                "dominant_axis": dec.dominant_axis,
+                "reason": dec.reason,
+            },
         )
         outcomes.append({"memory_id": c["memory_id"], "status": "admitted" if dec.allow_influence else "rejected", "risk": risk, "score": dec.score})
 

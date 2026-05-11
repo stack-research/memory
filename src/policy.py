@@ -34,6 +34,12 @@ class RetrievalPolicy:
     effective_at: str
     eligibility_threshold: float
     quarantine_risk_threshold: float
+    uncertainty_gate_mode: str = "combined"
+    uncertainty_combined_threshold: float | None = None
+    uncertainty_claim_threshold: float = 0.3
+    uncertainty_recall_process_threshold: float = 0.3
+    uncertainty_provenance_chain_threshold: float = 0.3
+    uncertainty_safety_floor: float = 0.1
     implicit_admission_threshold: float = 0.45
     implicit_reflex_threshold: float = 0.75
     implicit_reflex_max_actions: int = 2

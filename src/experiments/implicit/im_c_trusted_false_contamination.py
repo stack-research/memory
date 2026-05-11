@@ -89,7 +89,18 @@ def run() -> dict:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=s["memory_id"],
-                payload={"reason": ImplicitReason.CONTAMINATION_RISK_THRESHOLD.value, "risk": risk},
+                payload={
+                    "reason": ImplicitReason.CONTAMINATION_RISK_THRESHOLD.value,
+                    "risk": risk,
+                    "eligibility_score": 0.0,
+                    "uncertainty_triple": {
+                        "confidence_in_claim": 0.0,
+                        "confidence_in_recall_process": 0.0,
+                        "confidence_in_provenance_chain": 0.0,
+                    },
+                    "combined_score": 0.0,
+                    "dominant_axis": "claim",
+                },
             )
         else:
             promoted += 1
@@ -99,7 +110,17 @@ def run() -> dict:
                 agent_id=agent_id,
                 stream_id=stream_id,
                 memory_id=s["memory_id"],
-                payload={"risk": risk},
+                payload={
+                    "risk": risk,
+                    "eligibility_score": 1.0,
+                    "uncertainty_triple": {
+                        "confidence_in_claim": 1.0,
+                        "confidence_in_recall_process": 1.0,
+                        "confidence_in_provenance_chain": 1.0,
+                    },
+                    "combined_score": 1.0,
+                    "dominant_axis": "claim",
+                },
             )
 
     containment_rate = quarantined / max(1, len(scenarios))

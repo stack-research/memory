@@ -87,6 +87,7 @@ Covers:
 - policy audit field coverage (`policy_id`, `policy_version`, `policy_effective_at`)
 - controlled reason taxonomy usage for `rejected` and `quarantined`
 - recent spot-audit rows
+- three-axis uncertainty field coverage on `recalled`, `rejected`, `implicit_admitted`, `implicit_rejected`
 
 Run automatically from repo root:
 - `make phase4-audit`

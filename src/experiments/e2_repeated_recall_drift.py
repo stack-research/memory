@@ -129,6 +129,13 @@ def run() -> None:
                 "query": ctx.query,
                 "top_hit": hits.get("vectors", [{}])[0],
                 "claim_before_mutation": current_claim,
+                "uncertainty_triple": {
+                    "confidence_in_claim": 1.0,
+                    "confidence_in_recall_process": 1.0,
+                    "confidence_in_provenance_chain": 1.0,
+                },
+                "combined_score": 1.0,
+                "dominant_axis": "claim",
                 **cfg.retrieval_policy.audit_fields(),
             },
         )

@@ -203,7 +203,7 @@ Current behavior (scaffold):
 - Emits deterministic quarantined or promoted outcomes per cycle.
 - Emits final poison-promotion and label-coverage summary.
 
-### Implicit Memory Regression Harness (Suites A/C/D/E/F)
+### Implicit Memory Regression Harness (Suites A-O)
 
 Directory: `implicit/`
 
@@ -223,8 +223,12 @@ Current behavior:
 - `im_i_policy_mutation_lineage.py` (Suite I policy mutation lineage + replay)
 - `im_j_split_reality_integration.py` (Suite J split-reality routing in decision path)
 - `im_k_scheduled_cues.py` (Suite K scheduled/timed cue triggers)
+- `im_l_uncertainty_gate_modes.py` (Suite L combined vs per-axis side-by-side)
+- `im_m_provenance_decay.py` (Suite M provenance-chain decay stress)
+- `im_n_recall_degradation.py` (Suite N recall-process degradation stress)
+- `im_o_claim_implausibility.py` (Suite O claim implausibility stress)
 - `im_aws_lineage_replay.py` (AWS lineage + canonical replay smoke)
-- `im_regression.py` aggregates pass/fail and enforces flood fail gates.
+- `im_regression.py` aggregates pass/fail for A-K and enforces flood fail gates.
 
 ### E9-E12 Regression Harness
 

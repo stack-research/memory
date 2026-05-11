@@ -38,3 +38,20 @@ FROM memory_lab.memory_events_v5
 WHERE event_type IN ('recalled', 'rejected', 'quarantined')
 ORDER BY event_time DESC
 LIMIT 100;
+
+-- 4) Three-axis uncertainty payload coverage on required decision families
+SELECT
+  event_type,
+  COUNT(*) AS n,
+  SUM(CASE WHEN json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_claim') IS NULL THEN 1 ELSE 0 END) AS missing_claim_axis,
+  SUM(CASE WHEN json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_recall_process') IS NULL THEN 1 ELSE 0 END) AS missing_recall_axis,
+  SUM(CASE WHEN json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_provenance_chain') IS NULL THEN 1 ELSE 0 END) AS missing_provenance_axis,
+  SUM(CASE WHEN json_extract_scalar(payload, '$.combined_score') IS NULL THEN 1 ELSE 0 END) AS missing_combined_score,
+  SUM(CASE WHEN json_extract_scalar(payload, '$.dominant_axis') IS NULL THEN 1 ELSE 0 END) AS missing_dominant_axis,
+  SUM(CASE WHEN json_extract_scalar(payload, '$.provenance_signals.parent_chain_depth') IS NULL THEN 1 ELSE 0 END) AS missing_parent_chain_depth,
+  SUM(CASE WHEN json_extract_scalar(payload, '$.provenance_signals.source_diversity') IS NULL THEN 1 ELSE 0 END) AS missing_source_diversity,
+  SUM(CASE WHEN json_extract_scalar(payload, '$.provenance_signals.age_of_original_source') IS NULL THEN 1 ELSE 0 END) AS missing_age_of_original_source
+FROM memory_lab.memory_events_v5
+WHERE event_type IN ('recalled', 'rejected', 'implicit_admitted', 'implicit_rejected')
+GROUP BY 1
+ORDER BY 1;

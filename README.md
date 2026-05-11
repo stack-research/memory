@@ -55,7 +55,7 @@ Run a single implicit loop tick (no Makefile target):
 PYTHONPATH=. uv run --project stacks python -m src.implicit_memory.run_loop
 ```
 
-Run any experiment by name (`e1..e12`, `im-a..im-k`, `im-aws`, `im-regression`):
+Run any experiment by name (`e1..e12`, `im-a..im-o`, `im-aws`, `im-regression`):
 
 ```bash
 PYTHONPATH=. uv run --project stacks python -m src.run_experiment <name>
@@ -73,6 +73,5 @@ See the [`Makefile`](Makefile) for the full list of targets.
 
 - [`specs/AGENT_PRIMER.md`](specs/AGENT_PRIMER.md) — what this system is, in one file.
 - [`AGENTS.md`](AGENTS.md) — rules for coding agents.
-- [`specs/IMPLICIT_MEMORY_SPEC.md`](specs/IMPLICIT_MEMORY_SPEC.md) — governed/reflex contract.
 
 Anything else is on the primer's deep-dive list.

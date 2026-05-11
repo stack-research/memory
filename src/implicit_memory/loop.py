@@ -114,6 +114,44 @@ class ImplicitControllerLoop:
         if admission_reason:
             admitted_payload["reason"] = admission_reason
 
+        gate = eligibility_gate(
+            relevance=gate_inputs["relevance"],
+            trust=gate_inputs["trust"],
+            recency=gate_inputs["recency"],
+            reinforcement=gate_inputs["reinforcement"],
+            consistency=gate_inputs["consistency"],
+            safety=gate_inputs["safety"],
+            threshold=self.policy_state.threshold_map["eligibility_threshold"],
+            parent_chain_depth=gate_inputs.get("parent_chain_depth", 0.0),
+            source_diversity=gate_inputs.get("source_diversity", 1.0),
+            age_of_original_source=gate_inputs.get("age_of_original_source", 0.0),
+            gate_mode=self.cfg.retrieval_policy.uncertainty_gate_mode,
+            combined_threshold=self.cfg.retrieval_policy.uncertainty_combined_threshold,
+            claim_threshold=self.cfg.retrieval_policy.uncertainty_claim_threshold,
+            recall_process_threshold=self.cfg.retrieval_policy.uncertainty_recall_process_threshold,
+            provenance_chain_threshold=self.cfg.retrieval_policy.uncertainty_provenance_chain_threshold,
+            safety_floor=self.cfg.retrieval_policy.uncertainty_safety_floor,
+        )
+
+        admitted_payload.update(
+            {
+                "eligibility_score": gate.score,
+                "uncertainty_triple": {
+                    "confidence_in_claim": gate.uncertainty_triple.confidence_in_claim,
+                    "confidence_in_recall_process": gate.uncertainty_triple.confidence_in_recall_process,
+                    "confidence_in_provenance_chain": gate.uncertainty_triple.confidence_in_provenance_chain,
+                },
+                "combined_score": gate.combined_score,
+                "dominant_axis": gate.dominant_axis,
+                "provenance_signals": {
+                    "parent_chain_depth": gate_inputs.get("parent_chain_depth", 0.0),
+                    "source_diversity": gate_inputs.get("source_diversity", 1.0),
+                    "age_of_original_source": gate_inputs.get("age_of_original_source", 0.0),
+                },
+                "uncertainty_gate_mode": gate.gate_mode,
+            }
+        )
+
         self.lineage.emit(
             event_type="implicit_admitted",
             agent_id=self.agent_id,
@@ -124,20 +162,24 @@ class ImplicitControllerLoop:
             payload=admitted_payload,
         )
 
-        gate = eligibility_gate(
-            relevance=gate_inputs["relevance"],
-            trust=gate_inputs["trust"],
-            recency=gate_inputs["recency"],
-            reinforcement=gate_inputs["reinforcement"],
-            consistency=gate_inputs["consistency"],
-            safety=gate_inputs["safety"],
-            threshold=self.policy_state.threshold_map["eligibility_threshold"],
-        )
         if not gate.allow_influence:
             self._emit_rejected(
                 memory_id=memory_id,
                 reason=gate.reason,
                 eligibility_score=gate.score,
+                uncertainty_triple={
+                    "confidence_in_claim": gate.uncertainty_triple.confidence_in_claim,
+                    "confidence_in_recall_process": gate.uncertainty_triple.confidence_in_recall_process,
+                    "confidence_in_provenance_chain": gate.uncertainty_triple.confidence_in_provenance_chain,
+                },
+                combined_score=gate.combined_score,
+                dominant_axis=gate.dominant_axis,
+                provenance_signals={
+                    "parent_chain_depth": gate_inputs.get("parent_chain_depth", 0.0),
+                    "source_diversity": gate_inputs.get("source_diversity", 1.0),
+                    "age_of_original_source": gate_inputs.get("age_of_original_source", 0.0),
+                },
+                uncertainty_gate_mode=gate.gate_mode,
             )
             return False
         return True
@@ -435,6 +477,9 @@ class ImplicitControllerLoop:
                             "reinforcement": max(0.0, min(1.0, signals.repetition_signal + 0.5)),
                             "consistency": max(0.0, min(1.0, 1.0 - signals.contradiction_pressure)),
                             "safety": max(0.0, min(1.0, 1.0 - signals.risk_signal * 0.2)),
+                            "parent_chain_depth": 0.0,
+                            "source_diversity": max(0.0, min(1.0, 1.0 - self._sensor_spread(signals.sensor_values))),
+                            "age_of_original_source": 0.0,
                         },
                     )
                     if allowed:
@@ -525,6 +570,9 @@ class ImplicitControllerLoop:
                     "reinforcement": 1.0,
                     "consistency": 1.0,
                     "safety": max(0.0, min(1.0, 1.0 - cue.risk_signal * 0.1)),
+                    "parent_chain_depth": 0.0,
+                    "source_diversity": 1.0,
+                    "age_of_original_source": max(0.0, overdue_seconds / 3600.0),
                 },
             )
             if allowed:

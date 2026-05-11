@@ -1,5 +1,5 @@
 from .conflict import contradiction_flag
-from .eligibility import is_eligible, score_candidate
+from .eligibility import UncertaintyTriple, is_eligible, score_candidate, score_triple
 from .events import (
     emit_explicit_event,
     emit_mutated,
@@ -22,6 +22,8 @@ __all__ = [
     "emit_rejected",
     "emit_mutated",
     "emit_promoted",
+    "UncertaintyTriple",
+    "score_triple",
     "score_candidate",
     "is_eligible",
     "contradiction_flag",
