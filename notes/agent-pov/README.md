@@ -84,3 +84,4 @@ The original observation that motivated a proposal stays in place after promotio
 2. Scan for entries cited by the task at hand.
 3. Before contributing, decide whether the new contribution is an observation, a reaction, a proposal, or a closing entry.
 4. Write the new file. Add a row to `INDEX.md`. Do not touch prior files.
+

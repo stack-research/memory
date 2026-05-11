@@ -161,7 +161,8 @@ def score_candidate(
 
 Reused by the implicit gate in `src/implicit_memory/eligibility.py`.
 
-Known gap: the three uncertainty axes from Section 4 are not yet first-class here. The product answers "how uncertain," not "why uncertain." This is a recorded open edge (Section 15), not a defect to fix unprompted.
+Three-axis uncertainty is now specified in `specs/THREE_AXIS_UNCERTAINTY.md`.
+Treat that spec as the canonical direction for moving from a scalar score to axis-aware uncertainty representation and gating.
 
 ## 10) Two execution modes
 
@@ -228,6 +229,7 @@ Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-k`, `im-aws`, `im-r
 ## 14) Deep dives (open only when needed)
 
 - `specs/IMPLICIT_MEMORY_SPEC.md` — touching trigger, admission, eligibility, reflex, contamination, or policy mutation logic.
+- `specs/THREE_AXIS_UNCERTAINTY.md` — touching uncertainty representation, eligibility scoring, provenance confidence, or axis-aware gating.
 - `specs/IMPLICIT_MEMORY_TEST_SPEC.md` — writing or changing an `im_*` experiment.
 - `specs/ENGINEERING_SPEC.md` — touching ingestion or Athena.
 - `specs/EXPERIMENTS.md` — adding a new experiment file.
@@ -242,7 +244,6 @@ Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-k`, `im-aws`, `im-r
 
 The system knows these are not yet done. They are candidates for the next plan, not silent defects.
 
-- **Three-axis uncertainty is theory, not math.** `score_candidate` collapses six factors into one product. The three axes from Section 4 are not yet first-class.
 - **Envelope `payload` is free-form.** `claim`, `evidence`, `belief`, `memory` are enforced by convention, not by schema. A future loop could quietly conflate them.
 - **`confidence_in_provenance_chain` is not scored.** `parent_event_id` carries lineage shape; no part of the math reads chain depth, branching, or source diversity.
 - **Static cue providers.** `StaticObservationProvider` and `StaticCueProvider` in `src/implicit_memory/run_loop.py` are stubs. The EventBridge bus and SQS FIFO queue exist in the stack but nothing pushes real signals through them.
