@@ -11,7 +11,7 @@ Build and maintain a small AWS-native memory lab where:
 ## Non-negotiable invariants
 
 1. Memory behavior can change; lineage history must not be rewritten.
-2. S3 Tables is canonical lineage (`memory_lab.memory_events_v4`).
+2. S3 Tables is canonical lineage (`memory_lab.memory_events_v5`).
 3. S3 Vectors is a rebuildable recall index, not source of truth.
 4. Do not auto-resolve contradictions.
 
@@ -21,7 +21,7 @@ Build and maintain a small AWS-native memory lab where:
 2. Athena ingestion validates into:
    - `lineage_events_raw` (validatable intake)
    - `lineage_events_quarantine` (invalid records)
-3. Valid rows are inserted into canonical S3 Tables (`AWS_ATHENA_TARGET_TABLE_FQN`, default `memory_lab.memory_events_v4`).
+3. Valid rows are inserted into canonical S3 Tables (`AWS_ATHENA_TARGET_TABLE_FQN`, default `memory_lab.memory_events_v5`).
 
 ## Required event envelope
 
