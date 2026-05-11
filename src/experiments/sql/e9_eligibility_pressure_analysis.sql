@@ -1,5 +1,5 @@
 -- E9 Eligibility Under Contradiction Pressure Analysis
--- Default table: memory_lab.memory_events_v4
+-- Default table: memory_lab.memory_events_v5
 
 -- 1) Scenario snapshots and winner agreement
 SELECT
@@ -11,7 +11,7 @@ SELECT
   CAST(json_extract_scalar(payload, '$.agreement') AS BOOLEAN) AS agreement,
   CAST(json_extract_scalar(payload, '$.expected_score_a') AS DOUBLE) AS expected_score_a,
   CAST(json_extract_scalar(payload, '$.expected_score_b') AS DOUBLE) AS expected_score_b
-FROM memory_lab.memory_events_v4
+FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e9'
   AND event_type = 'snapshotted'
   AND json_extract_scalar(payload, '$.snapshot_type') = 'eligibility_contradiction_pressure'
@@ -24,7 +24,7 @@ SELECT
   CAST(json_extract_scalar(payload, '$.agreement_rate') AS DOUBLE) AS agreement_rate,
   CAST(json_extract_scalar(payload, '$.scenario_count') AS INTEGER) AS scenario_count,
   CAST(json_extract_scalar(payload, '$.pass') AS BOOLEAN) AS pass
-FROM memory_lab.memory_events_v4
+FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e9'
   AND event_type = 'snapshotted'
   AND json_extract_scalar(payload, '$.snapshot_type') = 'eligibility_contradiction_pressure'
@@ -36,7 +36,7 @@ LIMIT 20;
 SELECT
   json_extract_scalar(payload, '$.reason') AS reason,
   COUNT(*) AS n
-FROM memory_lab.memory_events_v4
+FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e9'
   AND event_type = 'rejected'
 GROUP BY 1

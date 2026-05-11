@@ -305,4 +305,4 @@ class AthenaLineageIngestionJob:
     def _target_table_fqn() -> str:
         import os
 
-        return os.environ.get("AWS_ATHENA_TARGET_TABLE_FQN", "memory_lab.memory_events_v4")
+        return os.environ.get("AWS_ATHENA_TARGET_TABLE_FQN", "memory_lab.memory_events_v5")

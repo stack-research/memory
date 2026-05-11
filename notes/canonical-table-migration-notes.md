@@ -18,7 +18,7 @@ Safely migrate canonical lineage schema in S3 Tables (for example adding `actor_
 
 ## Phase A: Plan
 
-1. Pick new canonical table name, e.g. `memory_events_v4`.
+1. Pick new canonical table name, e.g. `memory_events_v5`.
 2. Freeze target schema (columns, order, types, requiredness).
 3. Identify cutover env vars:
    - `AWS_ATHENA_TARGET_TABLE_FQN`
@@ -47,7 +47,7 @@ aws athena start-query-execution \
 ## Phase C: Backfill from raw to new canonical
 
 1. Set target table env (in `.env`/runtime env):
-   - `AWS_ATHENA_TARGET_TABLE_FQN=memory_lab.memory_events_v4`
+   - `AWS_ATHENA_TARGET_TABLE_FQN=memory_lab.memory_events_v5`
 2. Run ingestion:
 
 ```bash
@@ -125,7 +125,7 @@ Fix:
 
 ## Migration status (completed)
 
-- Canonical table `memory_events_v4` created with `actor_class` and `source_class`.
+- Canonical table `memory_events_v5` created with `actor_class` and `source_class`.
 - Ingestion updated to schema-adaptive canonical projection (prevents target column mismatch).
 - Environment defaults updated to v4 (`AWS_S3_TABLE_NAME`, `AWS_ATHENA_TARGET_TABLE_FQN`).
 - Backfill/idempotency validated (`inserted` then `0` on re-run for same input).
@@ -141,6 +141,6 @@ Fix:
 ## Change record
 
 - Date: 2026-05-08
-- Migration: canonical `memory_events_v3` -> `memory_events_v4`
+- Migration: canonical `memory_events_v3` -> `memory_events_v5`
 - Reason: include security envelope fields (`actor_class`, `source_class`) in canonical lineage.
 - Caveat: E8 equivalence gates remain sensitive to corpus density/tolerance settings during replay windows.

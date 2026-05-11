@@ -23,7 +23,7 @@ class MemoryLabStack(Stack):
         if not table_bucket_name:
             raise ValueError("AWS_S3_TABLE_BUCKET_NAME must be set")
 
-        table_name = os.environ.get("AWS_S3_TABLE_NAME", "memory_events_v4")
+        table_name = os.environ.get("AWS_S3_TABLE_NAME", "memory_events_v5")
         table_namespace = os.environ.get("AWS_S3_TABLE_NAMESPACE", "memory_lab")
 
         ingress_bucket_name = os.environ.get("AWS_S3_LINEAGE_INGRESS_BUCKET_NAME")

@@ -54,7 +54,7 @@ Lineage plane must not.
 flowchart TD
     W1[LineageEngine.emit] --> W2[S3 ingress objects\nappend-only JSON]
     W2 --> W3[Athena raw external table\nAwsDataCatalog.memory_lab.lineage_events_raw]
-    W3 -->|validate + dedupe| W4[S3 Tables canonical lineage\ns3tablescatalog/.../memory_events_v4]
+    W3 -->|validate + dedupe| W4[S3 Tables canonical lineage\ns3tablescatalog/.../memory_events_v5]
     W3 -->|invalid rows| W5[Quarantine table\nAwsDataCatalog.memory_lab.lineage_events_quarantine]
 ```
 

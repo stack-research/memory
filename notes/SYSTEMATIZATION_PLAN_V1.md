@@ -126,19 +126,19 @@ Migration is complete. This lab now has a fixed split of responsibilities:
 
 - Ingress evidence + validation: `AwsDataCatalog.memory_lab.lineage_events_raw`
 - Quarantine evidence: `AwsDataCatalog.memory_lab.lineage_events_quarantine`
-- Canonical lineage (source of replay truth): `s3tablescatalog/<bucket>.memory_lab.memory_events_v4`
+- Canonical lineage (source of replay truth): `s3tablescatalog/<bucket>.memory_lab.memory_events_v5`
 
 Hard rules (no longer transitional):
 
-1. New ingestion targets `memory_events_v4` only.
+1. New ingestion targets `memory_events_v5` only.
 2. `memory_events_v3` is deprecated and read-only for rollback/history checks.
 3. Raw/quarantine are ingestion-quality surfaces, not canonical belief history.
-4. Replay/belief/audit conclusions must come from canonical (`memory_events_v4`).
+4. Replay/belief/audit conclusions must come from canonical (`memory_events_v5`).
 5. Any future canonical schema change must use explicit `memory_events_vN` cutover + backfill.
 
 ### Finalization checks
 
-- [x] Canonical target default is `AWS_ATHENA_TARGET_TABLE_FQN=memory_lab.memory_events_v4`.
+- [x] Canonical target default is `AWS_ATHENA_TARGET_TABLE_FQN=memory_lab.memory_events_v5`.
 - [x] Ingestion preflight validates target schema/projection before ingest.
 - [x] Ingestion idempotency confirmed on re-run.
 - [x] Phase 5 and Phase 6 audits run successfully on current flow.
@@ -149,7 +149,7 @@ Hard rules (no longer transitional):
 Closed for this stage. We are no longer evaluating a dual-canonical strategy in this small lab.
 
 Decision:
-- S3 Tables canonical (`memory_events_v4`) is the backbone.
+- S3 Tables canonical (`memory_events_v5`) is the backbone.
 - Athena raw/quarantine remains as supporting ingestion evidence only.
 
 ---

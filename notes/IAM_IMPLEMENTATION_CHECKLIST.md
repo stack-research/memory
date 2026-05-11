@@ -14,7 +14,7 @@ Use these variables when rendering policies:
 - `AWS_S3_LINEAGE_INGRESS_PREFIX` (default example: `lineage-events-raw/`)
 - `AWS_S3_TABLE_BUCKET_NAME` (default example: `memory-lab-lineage-table`)
 - `AWS_S3_TABLE_NAMESPACE` (default: `memory_lab`)
-- `AWS_S3_TABLE_NAME` (default: `memory_events_v4`)
+- `AWS_S3_TABLE_NAME` (default: `memory_events_v5`)
 - `AWS_S3_VECTOR_BUCKET_NAME` (default example: `memory-lab-vectors`)
 - `AWS_S3_VECTOR_INDEX_NAME` (default: `memories-v2`)
 - `AWS_ATHENA_WORKGROUP_NAME` (default: `memory-lab`)

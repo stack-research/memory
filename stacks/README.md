@@ -28,7 +28,7 @@ This directory contains AWS CDK infrastructure for the memory lab backend.
   - `namespace`: `AWS_S3_TABLE_NAMESPACE` (default: `memory_lab`)
   - Depends on table bucket
 - **Iceberg table** (`aws_s3tables.CfnTable`)
-  - `table_name`: `AWS_S3_TABLE_NAME` (default: `memory_events_v4`)
+  - `table_name`: `AWS_S3_TABLE_NAME` (default: `memory_events_v5`)
   - `open_table_format`: `ICEBERG`
   - `table_properties`: `format-version=2`
   - Depends on namespace
@@ -102,7 +102,7 @@ If missing, stack raises `ValueError`.
 
 ### Optional (with defaults)
 
-- `AWS_S3_TABLE_NAME` = `memory_events_v4`
+- `AWS_S3_TABLE_NAME` = `memory_events_v5`
 - `AWS_S3_TABLE_NAMESPACE` = `memory_lab`
 - `AWS_ATHENA_WORKGROUP_NAME` = `memory-lab`
 - `AWS_ATHENA_DATABASE` = `memory_lab`
@@ -148,7 +148,7 @@ flowchart LR
     subgraph Canonical[Canonical Lineage]
       TB[S3 Tables Bucket]
       NS[Namespace]
-      LT[Iceberg Table\nmemory_events_v4 default]
+      LT[Iceberg Table\nmemory_events_v5 default]
       TB --> NS --> LT
     end
 
