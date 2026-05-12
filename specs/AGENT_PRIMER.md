@@ -230,6 +230,7 @@ Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-p`, `im-aws`, `im-r
 
 - `specs/IMPLICIT_MEMORY_SPEC.md` — touching trigger, admission, eligibility, reflex, contamination, or policy mutation logic.
 - `specs/THREE_AXIS_UNCERTAINTY.md` — touching uncertainty representation, eligibility scoring, provenance confidence, or axis-aware gating.
+- `specs/PROVENANCE_SIGNAL_WRITER.md` — touching provenance signal production, vector metadata, replay determinism for provenance, or provenance-aware gate inputs.
 - `specs/IMPLICIT_MEMORY_TEST_SPEC.md` — writing or changing an `im_*` experiment.
 - `specs/ENGINEERING_SPEC.md` — touching ingestion or Athena.
 - `specs/EXPERIMENTS.md` — adding a new experiment file.
@@ -245,7 +246,7 @@ Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-p`, `im-aws`, `im-r
 The system knows these are not yet done. They are candidates for the next plan, not silent defects.
 
 - **Envelope `payload` is free-form.** `claim`, `evidence`, `belief`, `memory` are enforced by convention, not by schema. A future loop could quietly conflate them.
-- **`confidence_in_provenance_chain` is not scored.** `parent_event_id` carries lineage shape; no part of the math reads chain depth, branching, or source diversity.
+- **Provenance signal production is specified but may be partially unimplemented in runtime paths.** See `specs/PROVENANCE_SIGNAL_WRITER.md`; verify chain-derived signals are produced and consumed before treating `confidence_in_provenance_chain` as fully evidence-backed.
 - **Static cue providers.** `StaticObservationProvider` and `StaticCueProvider` in `src/implicit_memory/run_loop.py` are stubs. The EventBridge bus and SQS FIFO queue exist in the stack but nothing pushes real signals through them.
 
 When in doubt, prefer adding a lineage event over editing existing logic. Replay is the safety net.
