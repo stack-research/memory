@@ -14,6 +14,12 @@ from src.experiments.implicit.im_h_procedure_lifecycle import run as run_h
 from src.experiments.implicit.im_i_policy_mutation_lineage import run as run_i
 from src.experiments.implicit.im_j_split_reality_integration import run as run_j
 from src.experiments.implicit.im_k_scheduled_cues import run as run_k
+from src.experiments.implicit.im_l_uncertainty_gate_modes import run as run_l
+from src.experiments.implicit.im_m_provenance_decay import run as run_m
+from src.experiments.implicit.im_n_recall_degradation import run as run_n
+from src.experiments.implicit.im_o_claim_implausibility import run as run_o
+from src.experiments.implicit.im_p_default_mode_decision import run as run_p
+from src.experiments.implicit.im_q_traffic_evidence import run as run_q
 from src.implicit_memory.settings import load_implicit_test_settings
 
 
@@ -32,6 +38,12 @@ def run() -> dict:
     i = run_i()
     j = run_j()
     k = run_k()
+    l = run_l()
+    m = run_m()
+    n = run_n()
+    o = run_o()
+    p = run_p()
+    q = run_q()
 
     # explicit flood fail gates
     flood_gate_ok = (
@@ -56,7 +68,8 @@ def run() -> dict:
         "lineage_completeness_ok": primary_metrics["lineage_completeness"] >= cfg.lineage_completeness_min,
     }
 
-    suite_pass = a["pass"] and b["pass"] and c["pass"] and d["pass"] and e["pass"] and f["pass"] and g["pass"] and h["pass"] and i["pass"] and j["pass"] and k["pass"] and flood_gate_ok
+    uncertainty_suite_pass = l["pass"] and m["pass"] and n["pass"] and o["pass"] and p["pass"] and q["pass"]
+    suite_pass = a["pass"] and b["pass"] and c["pass"] and d["pass"] and e["pass"] and f["pass"] and g["pass"] and h["pass"] and i["pass"] and j["pass"] and k["pass"] and flood_gate_ok and uncertainty_suite_pass
     threshold_pass = all(threshold_checks.values())
     overall_pass = suite_pass and (threshold_pass if cfg.strict_regression_gate else True)
 
@@ -73,7 +86,16 @@ def run() -> dict:
         "i_pass": i["pass"],
         "j_pass": j["pass"],
         "k_pass": k["pass"],
+        "l_pass": l["pass"],
+        "m_pass": m["pass"],
+        "n_pass": n["pass"],
+        "o_pass": o["pass"],
+        "p_pass": p["pass"],
+        "q_pass": q["pass"],
+        "q_traffic_default_mode": q.get("default_mode"),
+        "q_traffic_rationale": q.get("rationale"),
         "flood_gate_ok": flood_gate_ok,
+        "uncertainty_suite_pass": uncertainty_suite_pass,
         "strict_regression_gate": cfg.strict_regression_gate,
         "deterministic_seed": cfg.deterministic_seed,
         "primary_metrics": primary_metrics,
@@ -102,6 +124,12 @@ def run() -> dict:
                 "i": i.get("replay"),
                 "j": j.get("replay"),
                 "k": k.get("replay"),
+                "l": l.get("replay"),
+                "m": m.get("replay"),
+                "n": n.get("replay"),
+                "o": o.get("replay"),
+                "p": p.get("replay"),
+                "q": q.get("replay"),
             },
         ),
     }

@@ -5,7 +5,7 @@ AWS_REGION ?= us-east-2
 PYTHONPATH_ROOT := ..
 STACKS_DIR := stacks
 
-.PHONY: synth deploy exp-e1 exp-e2 exp-e3 exp-e4 exp-e5 exp-e6 exp-e7 exp-e8 exp-e9 exp-e10 exp-e11 exp-e12 ingest ingest-preflight show-tables e2-analysis e5-analysis e9-analysis e10-analysis e11-analysis e12-analysis phase4-audit phase5-audit phase6-audit phase6-regression lab-regression e9-e12-regression implicit-regression implicit-regression-aws im-trigger-analysis im-contamination-analysis im-replay-diff
+.PHONY: synth deploy exp-e1 exp-e2 exp-e3 exp-e4 exp-e5 exp-e6 exp-e7 exp-e8 exp-e9 exp-e10 exp-e11 exp-e12 ingest ingest-preflight show-tables e2-analysis e5-analysis e9-analysis e10-analysis e11-analysis e12-analysis phase4-audit phase5-audit phase6-audit phase6-regression lab-regression e9-e12-regression implicit-regression implicit-regression-aws im-trigger-analysis im-contamination-analysis im-replay-diff im-l im-m im-n im-o im-p im-q axis-dominance-audit
 
 synth:
 	cd $(STACKS_DIR) && uv run cdk synth
@@ -111,3 +111,24 @@ im-contamination-analysis:
 
 im-replay-diff:
 	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.run_sql_file ../src/experiments/sql/im_replay_diff.sql --database memory_lab --catalog AwsDataCatalog --workgroup memory-lab
+
+im-l:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.implicit.im_l_uncertainty_gate_modes
+
+im-m:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.implicit.im_m_provenance_decay
+
+im-n:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.implicit.im_n_recall_degradation
+
+im-o:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.implicit.im_o_claim_implausibility
+
+im-p:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.implicit.im_p_default_mode_decision
+
+im-q:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.implicit.im_q_traffic_evidence
+
+axis-dominance-audit:
+	cd $(STACKS_DIR) && AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) PYTHONPATH=$(PYTHONPATH_ROOT) uv run python -m src.experiments.run_sql_file ../src/experiments/sql/axis_dominance_audit.sql --database memory_lab --catalog AwsDataCatalog --workgroup memory-lab
