@@ -14,8 +14,8 @@ Promoted from: `notes/agent-pov/proposals/THREE_AXIS_UNCERTAINTY.md` on 2026-05-
 - [x] Phase B policy/config switch implemented (`combined` vs `per_axis`)
 - [x] Phase B side-by-side stress runs completed and recorded in lineage
 - [x] Axis-specific stress scenarios added (provenance decay, recall degradation, claim implausibility)
-- [ ] Phase C default-mode decision recorded via policy update lineage events
-- [ ] v1 exit criteria met (Section 12)
+- [x] Phase C default-mode decision recorded via policy update lineage events
+- [x] v1 exit criteria met (Section 12)
 
 ## 1) Purpose
 

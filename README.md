@@ -16,7 +16,6 @@ After the primer, the only other required reading is [`AGENTS.md`](AGENTS.md). D
 - [`src/`](src/) — engine (`lineage_engine`, `storage`), explicit memory, implicit memory, ingestion, experiments.
 - [`specs/`](specs/) — load-bearing contracts. Start with `AGENT_PRIMER.md`.
 - [`notes/`](notes/) — theory and design pivots. Not contracts.
-- [`artifacts/`](artifacts/) — experiment outputs.
 
 ## Non-negotiable invariants
 
@@ -55,7 +54,7 @@ Run a single implicit loop tick (no Makefile target):
 PYTHONPATH=. uv run --project stacks python -m src.implicit_memory.run_loop
 ```
 
-Run any experiment by name (`e1..e12`, `im-a..im-o`, `im-aws`, `im-regression`):
+Run any experiment by name (`e1..e12`, `im-a..im-p`, `im-aws`, `im-regression`):
 
 ```bash
 PYTHONPATH=. uv run --project stacks python -m src.run_experiment <name>

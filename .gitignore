@@ -97,6 +97,9 @@ stack/.venv/
 stack/cdk.out/
 stack/.cdk.staging/
 
+# Local research artifacts
+artifacts/
+
 # Node.js / TypeScript
 node_modules/
 npm-debug.log*

@@ -30,6 +30,10 @@ class MemoryLabStack(Stack):
         if not ingress_bucket_name:
             raise ValueError("AWS_S3_LINEAGE_INGRESS_BUCKET_NAME must be set")
 
+        research_artifacts_bucket_name = os.environ.get("AWS_S3_RESEARCH_ARTIFACTS_BUCKET_NAME")
+        if not research_artifacts_bucket_name:
+            raise ValueError("AWS_S3_RESEARCH_ARTIFACTS_BUCKET_NAME must be set")
+
         athena_workgroup_name = os.environ.get("AWS_ATHENA_WORKGROUP_NAME", "memory-lab")
         athena_database_name = os.environ.get("AWS_ATHENA_DATABASE", "memory_lab")
 
@@ -144,6 +148,18 @@ class MemoryLabStack(Stack):
             enforce_ssl=True,
             dead_letter_queue=sqs.DeadLetterQueue(max_receive_count=5, queue=lab_dlq),
             visibility_timeout=Duration.seconds(60),
+            removal_policy=RemovalPolicy.RETAIN,
+        )
+
+        # Create a research artifacts bucket.
+        research_artifacts_bucket = s3.Bucket(
+            self,
+            "ResearchArtifactsBucket",
+            bucket_name=research_artifacts_bucket_name,
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            encryption=s3.BucketEncryption.S3_MANAGED,
+            enforce_ssl=True,
+            versioned=True,
             removal_policy=RemovalPolicy.RETAIN,
         )
 

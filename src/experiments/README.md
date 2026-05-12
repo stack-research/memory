@@ -227,6 +227,7 @@ Current behavior:
 - `im_m_provenance_decay.py` (Suite M provenance-chain decay stress)
 - `im_n_recall_degradation.py` (Suite N recall-process degradation stress)
 - `im_o_claim_implausibility.py` (Suite O claim implausibility stress)
+- `im_p_default_mode_decision.py` (Suite P default-mode decision from L/M/N/O evidence)
 - `im_aws_lineage_replay.py` (AWS lineage + canonical replay smoke)
 - `im_regression.py` aggregates pass/fail for A-K and enforces flood fail gates.
 

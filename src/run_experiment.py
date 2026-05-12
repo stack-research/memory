@@ -32,6 +32,7 @@ from src.experiments.implicit.im_l_uncertainty_gate_modes import run as run_im_l
 from src.experiments.implicit.im_m_provenance_decay import run as run_im_m
 from src.experiments.implicit.im_n_recall_degradation import run as run_im_n
 from src.experiments.implicit.im_o_claim_implausibility import run as run_im_o
+from src.experiments.implicit.im_p_default_mode_decision import run as run_im_p
 from src.experiments.implicit.im_regression import run as run_im_regression
 from src.storage import LineageStorage
 
@@ -65,6 +66,7 @@ EXPERIMENTS = {
     "im-m": run_im_m,
     "im-n": run_im_n,
     "im-o": run_im_o,
+    "im-p": run_im_p,
     "im-regression": run_im_regression,
 }
 
