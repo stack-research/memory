@@ -35,6 +35,7 @@ def run() -> dict[str, Any]:
 
     agent_id = "lab-agent-1"
     stream_id = "exp-e8"
+    vectors.set_lineage_context(lineage=lineage, agent_id=agent_id, stream_id=stream_id)
     run_id = os.environ.get("MEMORY_LAB_REPLAY_RUN_ID", "phase5-default")
     reader_backend = os.environ.get("AWS_LINEAGE_READER_BACKEND", "s3tables")
 

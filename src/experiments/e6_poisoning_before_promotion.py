@@ -18,6 +18,7 @@ def run() -> None:
 
     agent_id = "lab-agent-1"
     stream_id = "exp-e6"
+    vectors.set_lineage_context(lineage=lineage, agent_id=agent_id, stream_id=stream_id)
 
     poison_id = "mem-e6-poison"
     weak_true_id = "mem-e6-weak-true"

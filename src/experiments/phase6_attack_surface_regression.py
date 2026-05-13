@@ -36,6 +36,7 @@ def main() -> None:
     run_id = os.environ.get("MEMORY_LAB_REPLAY_RUN_ID", f"phase6-{uuid.uuid4().hex[:8]}")
     agent_id = "lab-agent-1"
     stream_id = f"phase6-regression-{run_id}"
+    vectors.set_lineage_context(lineage=lineage, agent_id=agent_id, stream_id=stream_id)
     other_agent_id = "lab-agent-2"
     other_stream_id = f"phase6-other-{run_id}"
 

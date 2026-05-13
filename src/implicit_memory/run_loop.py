@@ -8,6 +8,8 @@ from src.config import load_config
 from src.implicit_memory.controller import ObservationSignals
 from src.implicit_memory.loop import ImplicitControllerLoop
 from src.implicit_memory.procedure_state_store import S3ProcedureStateStore
+from src.implicit_memory.provenance_resolver import LineageProvenanceResolver
+from src.lineage_reader import build_lineage_reader
 from src.implicit_memory.scheduler import ScheduledCue, now_utc
 from src.lineage_engine import LineageEngine
 from src.storage import LineageStorage
@@ -62,5 +64,6 @@ if __name__ == "__main__":
         agent_id="lab-agent-1",
         stream_id=f"im-loop-{now_utc().strftime('%Y%m%d%H%M%S')}",
         procedure_state_store=S3ProcedureStateStore(cfg),
+        provenance_resolver=LineageProvenanceResolver(lineage_reader=build_lineage_reader(cfg)),
     )
     print(loop.tick())

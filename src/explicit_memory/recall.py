@@ -84,7 +84,12 @@ class RecallEngine:
 
             parent_chain_depth = float(metadata.get("parent_chain_depth", 0.0))
             source_diversity = float(metadata.get("source_diversity", 1.0))
-            age_of_original_source = float(metadata.get("age_of_original_source", metadata.get("hours_stale", 0.0)))
+            age_of_original_source = float(
+                metadata.get(
+                    "age_of_original_source",
+                    metadata.get("age_of_original_source_hours", metadata.get("hours_stale", 0.0)),
+                )
+            )
             triple = score_triple(
                 relevance=relevance,
                 trust=trust,

@@ -22,6 +22,10 @@ from src.implicit_memory.reasons import ImplicitReason
 from src.implicit_memory.scheduler import ScheduledCue, due_cues, escalation_level, now_utc
 
 
+class ProvenanceResolver(Protocol):
+    def resolve(self, *, memory_id: str, stream_id: str, as_of_time: str) -> dict[str, object]: ...
+
+
 class ObservationProvider(Protocol):
     def pull(self, *, now: datetime) -> list[tuple[str, ObservationSignals]]: ...
 
@@ -286,6 +290,7 @@ class ImplicitControllerLoop:
         agent_id: str,
         stream_id: str,
         procedure_state_store: ProcedureStateStore | None = None,
+        provenance_resolver: ProvenanceResolver | None = None,
         procedure_id: str = "proc-reflex-triage",
     ) -> None:
         self.cfg = cfg
@@ -295,6 +300,7 @@ class ImplicitControllerLoop:
         self.agent_id = agent_id
         self.stream_id = stream_id
         self.procedure_state_store = procedure_state_store
+        self.provenance_resolver = provenance_resolver
         self.procedure_id = procedure_id
         self.reflex = ReflexController(
             max_actions=self.cfg.retrieval_policy.implicit_reflex_max_actions,
@@ -309,6 +315,33 @@ class ImplicitControllerLoop:
             procedure_map={"reflex_slot": self.procedure_id},
         )
         self.policy_mutations_applied: set[str] = set()
+
+    def _resolve_provenance(self, *, memory_id: str, as_of_time: str) -> dict[str, object]:
+        if self.provenance_resolver is None:
+            return {
+                "parent_chain_depth": 0.0,
+                "source_diversity": 0.0,
+                "age_of_original_source": 0.0,
+                "fallback_reason": "resolver_not_configured",
+                "provenance_signal_source": "fallback",
+            }
+        payload = self.provenance_resolver.resolve(
+            memory_id=memory_id,
+            stream_id=self.stream_id,
+            as_of_time=as_of_time,
+        )
+        return {
+            "parent_chain_depth": float(payload.get("parent_chain_depth", 0.0)),
+            "source_diversity": float(payload.get("source_diversity", 0.0)),
+            "age_of_original_source": float(payload.get("age_of_original_source", 0.0)),
+            "fallback_reason": payload.get("fallback_reason"),
+            "provenance_signal_source": payload.get("provenance_signal_source", "computed"),
+            "chain_root_event_id": payload.get("chain_root_event_id"),
+            "chain_length": payload.get("chain_length", 0),
+            "distinct_source_classes": payload.get("distinct_source_classes", 0),
+            "computed_at": payload.get("computed_at", as_of_time),
+            "as_of_time": payload.get("as_of_time", as_of_time),
+        }
 
     def tick(self, *, now: datetime | None = None) -> dict:
         t = now or now_utc()
@@ -466,6 +499,29 @@ class ImplicitControllerLoop:
                         novelty=signals.prediction_error,
                         risk_signal=signals.risk_signal,
                     )
+                    provenance = self._resolve_provenance(memory_id=memory_id, as_of_time=t.isoformat())
+                    self.lineage.emit(
+                        event_type="provenance_signals_computed",
+                        agent_id=self.agent_id,
+                        stream_id=self.stream_id,
+                        memory_id=memory_id,
+                        actor_class="implicit_memory_controller",
+                        source_class="internal_engine",
+                        payload={
+                            "provenance_signals": {
+                                "parent_chain_depth": provenance["parent_chain_depth"],
+                                "source_diversity": provenance["source_diversity"],
+                                "age_of_original_source": provenance["age_of_original_source"],
+                            },
+                            "chain_root_event_id": provenance.get("chain_root_event_id"),
+                            "chain_length": provenance.get("chain_length", 0),
+                            "distinct_source_classes": provenance.get("distinct_source_classes", 0),
+                            "computed_at": provenance.get("computed_at", t.isoformat()),
+                            "as_of_time": provenance.get("as_of_time", t.isoformat()),
+                            "fallback_reason": provenance.get("fallback_reason"),
+                            "provenance_signal_source": provenance.get("provenance_signal_source", "computed"),
+                        },
+                    )
                     allowed = self._admit_and_gate(
                         memory_id=memory_id,
                         source_class="internal_engine",
@@ -477,9 +533,9 @@ class ImplicitControllerLoop:
                             "reinforcement": max(0.0, min(1.0, signals.repetition_signal + 0.5)),
                             "consistency": max(0.0, min(1.0, 1.0 - signals.contradiction_pressure)),
                             "safety": max(0.0, min(1.0, 1.0 - signals.risk_signal * 0.2)),
-                            "parent_chain_depth": 0.0,
-                            "source_diversity": max(0.0, min(1.0, 1.0 - self._sensor_spread(signals.sensor_values))),
-                            "age_of_original_source": 0.0,
+                            "parent_chain_depth": provenance["parent_chain_depth"],
+                            "source_diversity": provenance["source_diversity"],
+                            "age_of_original_source": provenance["age_of_original_source"],
                         },
                     )
                     if allowed:
@@ -558,6 +614,29 @@ class ImplicitControllerLoop:
             stats.cues_fired += 1
 
             admission_value = cue.urgency * cue.risk_signal
+            provenance = self._resolve_provenance(memory_id=cue.memory_id, as_of_time=t.isoformat())
+            self.lineage.emit(
+                event_type="provenance_signals_computed",
+                agent_id=self.agent_id,
+                stream_id=self.stream_id,
+                memory_id=cue.memory_id,
+                actor_class="implicit_memory_controller",
+                source_class="scheduler",
+                payload={
+                    "provenance_signals": {
+                        "parent_chain_depth": provenance["parent_chain_depth"],
+                        "source_diversity": provenance["source_diversity"],
+                        "age_of_original_source": provenance["age_of_original_source"],
+                    },
+                    "chain_root_event_id": provenance.get("chain_root_event_id"),
+                    "chain_length": provenance.get("chain_length", 0),
+                    "distinct_source_classes": provenance.get("distinct_source_classes", 0),
+                    "computed_at": provenance.get("computed_at", t.isoformat()),
+                    "as_of_time": provenance.get("as_of_time", t.isoformat()),
+                    "fallback_reason": provenance.get("fallback_reason"),
+                    "provenance_signal_source": provenance.get("provenance_signal_source", "computed"),
+                },
+            )
             allowed = self._admit_and_gate(
                 memory_id=cue.memory_id,
                 source_class="scheduler",
@@ -570,9 +649,9 @@ class ImplicitControllerLoop:
                     "reinforcement": 1.0,
                     "consistency": 1.0,
                     "safety": max(0.0, min(1.0, 1.0 - cue.risk_signal * 0.1)),
-                    "parent_chain_depth": 0.0,
-                    "source_diversity": 1.0,
-                    "age_of_original_source": max(0.0, overdue_seconds / 3600.0),
+                    "parent_chain_depth": provenance["parent_chain_depth"],
+                    "source_diversity": provenance["source_diversity"],
+                    "age_of_original_source": provenance["age_of_original_source"],
                 },
             )
             if allowed:

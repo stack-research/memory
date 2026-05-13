@@ -20,6 +20,7 @@ from src.experiments.implicit.im_n_recall_degradation import run as run_n
 from src.experiments.implicit.im_o_claim_implausibility import run as run_o
 from src.experiments.implicit.im_p_default_mode_decision import run as run_p
 from src.experiments.implicit.im_q_traffic_evidence import run as run_q
+from src.experiments.implicit.im_r_provenance_signal_writer import run as run_r
 from src.implicit_memory.settings import load_implicit_test_settings
 
 
@@ -44,6 +45,7 @@ def run() -> dict:
     o = run_o()
     p = run_p()
     q = run_q()
+    r = run_r()
 
     # explicit flood fail gates
     flood_gate_ok = (
@@ -68,7 +70,7 @@ def run() -> dict:
         "lineage_completeness_ok": primary_metrics["lineage_completeness"] >= cfg.lineage_completeness_min,
     }
 
-    uncertainty_suite_pass = l["pass"] and m["pass"] and n["pass"] and o["pass"] and p["pass"] and q["pass"]
+    uncertainty_suite_pass = l["pass"] and m["pass"] and n["pass"] and o["pass"] and p["pass"] and q["pass"] and r["pass"]
     suite_pass = a["pass"] and b["pass"] and c["pass"] and d["pass"] and e["pass"] and f["pass"] and g["pass"] and h["pass"] and i["pass"] and j["pass"] and k["pass"] and flood_gate_ok and uncertainty_suite_pass
     threshold_pass = all(threshold_checks.values())
     overall_pass = suite_pass and (threshold_pass if cfg.strict_regression_gate else True)
@@ -92,6 +94,7 @@ def run() -> dict:
         "o_pass": o["pass"],
         "p_pass": p["pass"],
         "q_pass": q["pass"],
+        "r_pass": r["pass"],
         "q_traffic_default_mode": q.get("default_mode"),
         "q_traffic_rationale": q.get("rationale"),
         "flood_gate_ok": flood_gate_ok,
@@ -130,6 +133,7 @@ def run() -> dict:
                 "o": o.get("replay"),
                 "p": p.get("replay"),
                 "q": q.get("replay"),
+                "r": r,
             },
         ),
     }

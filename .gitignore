@@ -117,3 +117,13 @@ pnpm-debug.log*
 stacks/cdk.out*
 stacks/.cdk.*
 stacks/dist/
+
+# Claude (Anthropic Claude Code / project-local)
+.claude/
+CLAUDE.local.md
+
+# OpenAI Codex (project-local config / auth cache)
+.codex/
+
+# Cursor IDE (workspace-local)
+.cursor/

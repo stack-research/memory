@@ -45,7 +45,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("sql_file")
     parser.add_argument("--database", default="memory_lab")
-    parser.add_argument("--catalog", default="AwsDataCatalog")
+    parser.add_argument("--catalog", default="")
     parser.add_argument("--workgroup", default="memory-lab")
     args = parser.parse_args()
 
@@ -54,11 +54,13 @@ def main() -> None:
     sql_text = Path(args.sql_file).read_text(encoding="utf-8")
     statements = _parse_statements(sql_text)
 
+    catalog = args.catalog or cfg.athena_s3tables_catalog
+
     for idx, statement in enumerate(statements, start=1):
         start = athena.start_query_execution(
             QueryString=statement,
             WorkGroup=args.workgroup,
-            QueryExecutionContext={"Database": args.database, "Catalog": args.catalog},
+            QueryExecutionContext={"Database": args.database, "Catalog": catalog},
         )
         qid = start["QueryExecutionId"]
         state = _wait(athena, qid)

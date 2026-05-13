@@ -19,6 +19,7 @@ def run() -> None:
 
     agent_id = "lab-agent-1"
     stream_id = "exp-e4"
+    vectors.set_lineage_context(lineage=lineage, agent_id=agent_id, stream_id=stream_id)
 
     claim_a_id = "mem-e4-claim-a"
     claim_b_id = "mem-e4-claim-b"

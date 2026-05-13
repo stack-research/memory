@@ -19,6 +19,7 @@ def run() -> None:
 
     agent_id = "lab-agent-1"
     stream_id = "exp-e1"
+    vectors.set_lineage_context(lineage=lineage, agent_id=agent_id, stream_id=stream_id)
 
     false_claim = "The capital of Australia is Sydney."
     true_claim = "The capital of Australia is Canberra."

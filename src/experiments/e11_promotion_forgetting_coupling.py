@@ -24,6 +24,7 @@ def run() -> dict:
 
     agent_id = "lab-agent-1"
     stream_id = "exp-e11"
+    vectors.set_lineage_context(lineage=lineage, agent_id=agent_id, stream_id=stream_id)
 
     promotion_threshold_k = 8
     promotion_threshold_epsilon = 0.2

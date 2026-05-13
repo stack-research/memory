@@ -12,6 +12,14 @@ from src.config import AwsConfig
 class LineageReader(Protocol):
     def query_events(self, *, stream_id: str) -> list[dict[str, Any]]: ...
 
+    def query_memory_events(
+        self,
+        *,
+        stream_id: str,
+        memory_id: str,
+        as_of_time: str | None = None,
+    ) -> list[dict[str, Any]]: ...
+
 
 class _AthenaLineageReaderBase:
     def __init__(self, cfg: AwsConfig, *, catalog: str, database: str, table: str) -> None:
@@ -53,6 +61,51 @@ class _AthenaLineageReaderBase:
                         "memory_id": data[0].get("VarCharValue", ""),
                         "event_type": data[1].get("VarCharValue", ""),
                         "payload": json.loads(payload_raw) if payload_raw else {},
+                        "event_time": data[3].get("VarCharValue", ""),
+                    }
+                )
+        return rows
+
+    def query_memory_events(
+        self,
+        *,
+        stream_id: str,
+        memory_id: str,
+        as_of_time: str | None = None,
+    ) -> list[dict[str, Any]]:
+        where_time = f"AND event_time <= TIMESTAMP '{as_of_time}'" if as_of_time else ""
+        sql = (
+            "SELECT event_id, parent_event_id, source_class, event_time "
+            f"FROM {self.table} "
+            f"WHERE stream_id = '{stream_id}' "
+            f"AND memory_id = '{memory_id}' "
+            f"{where_time} "
+            "ORDER BY event_time, event_id"
+        )
+        start = self.athena.start_query_execution(
+            QueryString=sql,
+            WorkGroup=os.environ.get("AWS_ATHENA_WORKGROUP_NAME", "memory-lab"),
+            QueryExecutionContext={"Database": self.database, "Catalog": self.catalog},
+        )
+        qid = start["QueryExecutionId"]
+        state = self._wait_for_query(qid)
+        if state != "SUCCEEDED":
+            raise RuntimeError(f"Athena query failed: {qid} state={state}")
+
+        rows: list[dict[str, Any]] = []
+        paginator = self.athena.get_paginator("get_query_results")
+        for page in paginator.paginate(QueryExecutionId=qid):
+            for row in page["ResultSet"]["Rows"]:
+                data = row.get("Data", [])
+                if len(data) < 4:
+                    continue
+                if data[0].get("VarCharValue") == "event_id":
+                    continue
+                rows.append(
+                    {
+                        "event_id": data[0].get("VarCharValue", ""),
+                        "parent_event_id": data[1].get("VarCharValue") or None,
+                        "source_class": data[2].get("VarCharValue") or "unknown",
                         "event_time": data[3].get("VarCharValue", ""),
                     }
                 )

@@ -7,8 +7,11 @@ from typing import Any
 
 import boto3
 
+from src.config import _load_project_env_files
+
 
 def _artifact_bucket_name() -> str:
+    _load_project_env_files()
     bucket = os.environ.get("AWS_S3_RESEARCH_ARTIFACTS_BUCKET_NAME")
     if not bucket:
         raise ValueError("AWS_S3_RESEARCH_ARTIFACTS_BUCKET_NAME must be set")

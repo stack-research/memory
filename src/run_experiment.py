@@ -33,6 +33,9 @@ from src.experiments.implicit.im_m_provenance_decay import run as run_im_m
 from src.experiments.implicit.im_n_recall_degradation import run as run_im_n
 from src.experiments.implicit.im_o_claim_implausibility import run as run_im_o
 from src.experiments.implicit.im_p_default_mode_decision import run as run_im_p
+from src.experiments.implicit.im_q_traffic_evidence import run as run_im_q
+from src.experiments.implicit.im_r_provenance_signal_writer import run as run_im_r
+from src.experiments.implicit.im_s_provenance_writer_closeout import run as run_im_s
 from src.experiments.implicit.im_regression import run as run_im_regression
 from src.storage import LineageStorage
 
@@ -67,6 +70,9 @@ EXPERIMENTS = {
     "im-n": run_im_n,
     "im-o": run_im_o,
     "im-p": run_im_p,
+    "im-q": run_im_q,
+    "im-r": run_im_r,
+    "im-s": run_im_s,
     "im-regression": run_im_regression,
 }
 
