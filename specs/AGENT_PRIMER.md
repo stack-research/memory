@@ -231,6 +231,7 @@ Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-p`, `im-aws`, `im-r
 - `specs/IMPLICIT_MEMORY_SPEC.md` — touching trigger, admission, eligibility, reflex, contamination, or policy mutation logic.
 - `specs/THREE_AXIS_UNCERTAINTY.md` — touching uncertainty representation, eligibility scoring, provenance confidence, or axis-aware gating.
 - `specs/PROVENANCE_SIGNAL_WRITER.md` — touching provenance signal production, vector metadata, replay determinism for provenance, or provenance-aware gate inputs.
+- `specs/TAI_TIMEKEEPING.md` — touching event time, replay timestamps, canonical lineage schema versions, boundary UTC/Gregorian conversion, or time-context quarantine.
 - `specs/IMPLICIT_MEMORY_TEST_SPEC.md` — writing or changing an `im_*` experiment.
 - `specs/ENGINEERING_SPEC.md` — touching ingestion or Athena.
 - `specs/EXPERIMENTS.md` — adding a new experiment file.
@@ -248,5 +249,6 @@ The system knows these are not yet done. They are candidates for the next plan, 
 - **Envelope `payload` is free-form.** `claim`, `evidence`, `belief`, `memory` are enforced by convention, not by schema. A future loop could quietly conflate them.
 - **Provenance signal production is specified but may be partially unimplemented in runtime paths.** See `specs/PROVENANCE_SIGNAL_WRITER.md`; verify chain-derived signals are produced and consumed before treating `confidence_in_provenance_chain` as fully evidence-backed.
 - **Static cue providers.** `StaticObservationProvider` and `StaticCueProvider` in `src/implicit_memory/run_loop.py` are stubs. The EventBridge bus and SQS FIFO queue exist in the stack but nothing pushes real signals through them.
+- **TAI timekeeping is specified but unimplemented.** Canonical lineage still uses v5/UTC-era event time until `specs/TAI_TIMEKEEPING.md` is implemented with v6, `physical_moment`, `time_context_declared`, and deterministic HLC.
 
 When in doubt, prefer adding a lineage event over editing existing logic. Replay is the safety net.

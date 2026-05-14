@@ -84,16 +84,34 @@ class AthenaLineageIngestionJob:
             f"{self.cfg.lineage_ingress_prefix.rstrip('/')}-quarantine/"
         )
 
+        # v6 validation per TAI_TIMEKEEPING spec §4, §5.1, §6.
+        # physical_moment is now a load-bearing JSON column; Tier 1a fields
+        # must be extractable and non-null.
+        pm = "json_extract(physical_moment, '$')"
+        pm_tai_iso = "json_extract_scalar(physical_moment, '$.tai_iso')"
+        pm_solar_age = "json_extract_scalar(physical_moment, '$.solar_age_myr')"
+        pm_lon = "json_extract_scalar(physical_moment, '$.ecliptic_lon_deg')"
+        pm_seq = "json_extract_scalar(physical_moment, '$.sequence_in_stream')"
+        pm_hlc = "json_extract_scalar(physical_moment, '$.hlc_timestamp')"
+        pm_hlc_eligible = "json_extract_scalar(physical_moment, '$.hlc_signature_eligible')"
+        pm_tcid = "json_extract_scalar(physical_moment, '$.time_context_id')"
+
         valid_rows_predicate = (
             "event_id IS NOT NULL "
             "AND agent_id IS NOT NULL "
             "AND event_type IS NOT NULL "
             "AND memory_id IS NOT NULL "
-            "AND event_time IS NOT NULL "
             "AND actor_class IS NOT NULL "
             "AND source_class IS NOT NULL "
-            "AND schema_version = '1.0' "
-            "AND try(from_iso8601_timestamp(event_time)) IS NOT NULL"
+            "AND schema_version = '6.0' "
+            "AND physical_moment IS NOT NULL "
+            f"AND {pm_tai_iso} IS NOT NULL "
+            f"AND try(from_iso8601_timestamp({pm_tai_iso})) IS NOT NULL "
+            f"AND {pm_solar_age} IS NOT NULL "
+            f"AND {pm_lon} IS NOT NULL "
+            f"AND {pm_seq} IS NOT NULL "
+            f"AND {pm_hlc} IS NOT NULL "
+            f"AND {pm_tcid} IS NOT NULL"
         )
 
         return [
@@ -120,7 +138,8 @@ class AthenaLineageIngestionJob:
                     "parent_event_id string,"
                     "actor_class string,"
                     "source_class string,"
-                    "payload string"
+                    "payload string,"
+                    "physical_moment string"
                     ") "
                     "ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe' "
                     f"LOCATION '{ingress_path}'"
@@ -160,16 +179,23 @@ class AthenaLineageIngestionJob:
                     f"{target_table} "
                     "SELECT "
                     "event_id,"
+                    "event_type,"
                     "agent_id,"
                     "stream_id,"
-                    "event_type,"
                     "memory_id,"
                     "payload,"
                     "actor_class,"
                     "source_class,"
-                    "CAST(from_iso8601_timestamp(event_time) AS timestamp) AS event_time,"
                     "schema_version,"
-                    "parent_event_id "
+                    "parent_event_id,"
+                    "physical_moment,"
+                    f"{pm_tai_iso} AS pm_tai_iso,"
+                    f"CAST({pm_solar_age} AS double) AS pm_solar_age_myr,"
+                    f"CAST({pm_lon} AS double) AS pm_ecliptic_lon_deg,"
+                    f"CAST({pm_seq} AS bigint) AS pm_sequence_in_stream,"
+                    f"{pm_hlc} AS pm_hlc_timestamp,"
+                    f"COALESCE(try(CAST({pm_hlc_eligible} AS boolean)), TRUE) AS pm_hlc_signature_eligible,"
+                    f"{pm_tcid} AS pm_time_context_id "
                     f"FROM {source_raw_ref} r "
                     f"WHERE {valid_rows_predicate} "
                     "AND NOT EXISTS ("
@@ -187,11 +213,15 @@ class AthenaLineageIngestionJob:
                     "INSERT INTO "
                     f"{quarantine_table} "
                     "SELECT "
-                    "json_format(CAST(row(event_id, event_type, agent_id, stream_id, memory_id, event_time, schema_version, parent_event_id, actor_class, source_class, payload) AS JSON)),"
+                    "json_format(CAST(row(event_id, event_type, agent_id, stream_id, memory_id, event_time, schema_version, parent_event_id, actor_class, source_class, payload, physical_moment) AS JSON)),"
                     "CASE "
-                    "WHEN event_id IS NULL OR agent_id IS NULL OR event_type IS NULL OR memory_id IS NULL OR event_time IS NULL OR schema_version IS NULL OR actor_class IS NULL OR source_class IS NULL THEN 'missing_required_field' "
-                    "WHEN schema_version <> '1.0' THEN 'unsupported_schema_version' "
-                    "WHEN try(from_iso8601_timestamp(event_time)) IS NULL THEN 'invalid_event_time_format' "
+                    "WHEN event_id IS NULL OR agent_id IS NULL OR event_type IS NULL OR memory_id IS NULL OR schema_version IS NULL OR actor_class IS NULL OR source_class IS NULL THEN 'missing_required_field' "
+                    "WHEN schema_version <> '6.0' THEN 'unsupported_schema_version' "
+                    "WHEN physical_moment IS NULL THEN 'missing_physical_moment' "
+                    f"WHEN {pm_tai_iso} IS NULL THEN 'missing_physical_moment' "
+                    f"WHEN try(from_iso8601_timestamp({pm_tai_iso})) IS NULL THEN 'invalid_tai_iso' "
+                    f"WHEN {pm_solar_age} IS NULL OR {pm_lon} IS NULL OR {pm_seq} IS NULL OR {pm_hlc} IS NULL THEN 'missing_physical_moment' "
+                    f"WHEN {pm_tcid} IS NULL THEN 'dangling_time_context_id' "
                     "ELSE 'unknown_validation_failure' END,"
                     "current_timestamp "
                     f"FROM {raw_table} "
@@ -199,12 +229,18 @@ class AthenaLineageIngestionJob:
                     "OR agent_id IS NULL "
                     "OR event_type IS NULL "
                     "OR memory_id IS NULL "
-                    "OR event_time IS NULL "
                     "OR schema_version IS NULL "
                     "OR actor_class IS NULL "
                     "OR source_class IS NULL "
-                    "OR schema_version <> '1.0' "
-                    "OR try(from_iso8601_timestamp(event_time)) IS NULL"
+                    "OR schema_version <> '6.0' "
+                    "OR physical_moment IS NULL "
+                    f"OR {pm_tai_iso} IS NULL "
+                    f"OR try(from_iso8601_timestamp({pm_tai_iso})) IS NULL "
+                    f"OR {pm_solar_age} IS NULL "
+                    f"OR {pm_lon} IS NULL "
+                    f"OR {pm_seq} IS NULL "
+                    f"OR {pm_hlc} IS NULL "
+                    f"OR {pm_tcid} IS NULL"
                 ),
             },
         ]
@@ -305,4 +341,4 @@ class AthenaLineageIngestionJob:
     def _target_table_fqn() -> str:
         import os
 
-        return os.environ.get("AWS_ATHENA_TARGET_TABLE_FQN", "memory_lab.memory_events_v5")
+        return os.environ.get("AWS_ATHENA_TARGET_TABLE_FQN", "memory_lab.memory_events_v6")

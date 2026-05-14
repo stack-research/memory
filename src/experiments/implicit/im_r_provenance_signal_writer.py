@@ -41,8 +41,8 @@ def run() -> dict:
     reader = _StubReader(rows)
     as_of = "2026-05-12T03:00:00+00:00"
 
-    a = compute_chain_signals(memory_id=memory_id, stream_id=stream_id, as_of_time=as_of, lineage_reader=reader)
-    b = compute_chain_signals(memory_id=memory_id, stream_id=stream_id, as_of_time=as_of, lineage_reader=reader)
+    a = compute_chain_signals(memory_id=memory_id, stream_id=stream_id, as_of_time=as_of, lineage_reader=reader, computed_at=as_of)
+    b = compute_chain_signals(memory_id=memory_id, stream_id=stream_id, as_of_time=as_of, lineage_reader=reader, computed_at=as_of)
 
     determinism_ok = (
         a.parent_chain_depth == b.parent_chain_depth
@@ -56,6 +56,7 @@ def run() -> dict:
         stream_id=stream_id,
         as_of_time="2026-05-12T01:00:00+00:00",
         lineage_reader=reader,
+        computed_at="2026-05-12T01:00:00+00:00",
     )
     replay_ok = replay_cutoff.parent_chain_depth == 1 and replay_cutoff.chain_root_event_id == "e-1"
 
@@ -74,6 +75,7 @@ def run() -> dict:
         stream_id=stream_id,
         as_of_time=as_of,
         lineage_reader=broken_reader,
+        computed_at=as_of,
     )
     fallback_ok = broken.fallback_reason == "broken_parent_link"
 
@@ -98,6 +100,7 @@ def run() -> dict:
         stream_id=stream_id,
         as_of_time=as_of,
         lineage_reader=cycle_reader,
+        computed_at=as_of,
     )
     cycle_ok = cycle.fallback_reason == "cycle_detected"
 
@@ -126,6 +129,7 @@ def run() -> dict:
         as_of_time=as_of,
         lineage_reader=_StubReader(deep_rows),
         max_chain_depth=16,
+        computed_at=as_of,
     )
     max_depth_ok = deep.fallback_reason == "max_chain_depth_exceeded" and deep.parent_chain_depth == 16
 
@@ -150,6 +154,7 @@ def run() -> dict:
         stream_id=stream_id,
         as_of_time=as_of,
         lineage_reader=unknown_reader,
+        computed_at=as_of,
     )
     # Unknown source classes are sentinel-normalized, not fallback.
     unknown_source_ok = unknown.fallback_reason is None and round(unknown.source_diversity, 6) == 0.5

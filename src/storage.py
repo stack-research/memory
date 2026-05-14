@@ -76,6 +76,7 @@ class LineageStorage:
             "actor_class": event.actor_class,
             "source_class": event.source_class,
             "payload": event.payload,
+            "physical_moment": event.physical_moment,
         }
 
         # NOTE: boto3 s3tables is control-plane only today; row writes need an Iceberg writer commit path.
@@ -129,6 +130,27 @@ class LineageStorage:
 
         if not isinstance(event.payload, dict):
             raise ValueError("Event payload must be a JSON object/dict")
+
+        # v6 physical_moment validation — Tier 1a non-nullable per spec §5.1.
+        if not isinstance(event.physical_moment, dict):
+            raise ValueError("Event physical_moment must be a JSON object/dict")
+        tier1a_required = (
+            "tai_iso",
+            "solar_age_myr",
+            "ecliptic_lon_deg",
+            "sequence_in_stream",
+            "hlc_timestamp",
+            "time_context_id",
+        )
+        for field_name in tier1a_required:
+            if event.physical_moment.get(field_name) is None:
+                raise ValueError(
+                    f"physical_moment.{field_name} is required (Tier 1a non-nullable per spec §5.1)"
+                )
+        if event.physical_moment["tai_iso"] != event.event_time:
+            raise ValueError(
+                "event_time must equal physical_moment.tai_iso in v6 (no wall-clock fallback)"
+            )
 
     def _table_bucket_arn(self) -> str:
         region = self.cfg.region

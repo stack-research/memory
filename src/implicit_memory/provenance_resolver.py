@@ -8,12 +8,16 @@ class LineageProvenanceResolver:
     def __init__(self, *, lineage_reader: LineageReader) -> None:
         self.lineage_reader = lineage_reader
 
-    def resolve(self, *, memory_id: str, stream_id: str, as_of_time: str) -> dict[str, object]:
+    def resolve(self, *, memory_id: str, stream_id: str, as_of_time: str, computed_at: str | None = None) -> dict[str, object]:
+        # `computed_at` must be replay-derived TAI per TAI_TIMEKEEPING §13.
+        # Fallback to `as_of_time` (the loop tick) keeps both fields anchored
+        # to the same deterministic source.
         signals = compute_chain_signals(
             memory_id=memory_id,
             stream_id=stream_id,
             as_of_time=as_of_time,
             lineage_reader=self.lineage_reader,
+            computed_at=computed_at or as_of_time,
         )
         payload = signals.as_payload()
         return {

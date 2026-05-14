@@ -69,10 +69,18 @@ def compute_chain_signals(
     stream_id: str,
     as_of_time: str,
     lineage_reader: LineageReader,
-    computed_at: str | None = None,
+    computed_at: str,
     max_chain_depth: int = 64,
 ) -> ProvenanceSignals:
-    now_iso = computed_at or datetime.utcnow().isoformat()
+    # Per TAI_TIMEKEEPING spec §13 and the 2026-05-13 rating soft-spot #2:
+    # `computed_at` must be a replay-derived TAI moment supplied by the caller.
+    # No wall-clock fallback. Empty string is rejected so the signal is loud.
+    if not computed_at:
+        raise ValueError(
+            "compute_chain_signals: computed_at is required (TAI from loop tick); "
+            "wall-clock fallback removed per TAI_TIMEKEEPING spec"
+        )
+    now_iso = computed_at
 
     try:
         events = lineage_reader.query_memory_events(

@@ -23,7 +23,7 @@ class MemoryLabStack(Stack):
         if not table_bucket_name:
             raise ValueError("AWS_S3_TABLE_BUCKET_NAME must be set")
 
-        table_name = os.environ.get("AWS_S3_TABLE_NAME", "memory_events_v5")
+        table_name = os.environ.get("AWS_S3_TABLE_NAME", "memory_events_v6")
         table_namespace = os.environ.get("AWS_S3_TABLE_NAMESPACE", "memory_lab")
 
         ingress_bucket_name = os.environ.get("AWS_S3_LINEAGE_INGRESS_BUCKET_NAME")
@@ -79,7 +79,6 @@ class MemoryLabStack(Stack):
         )
         lineage_namespace.add_dependency(table_bucket)
 
-        # Create a table for the lineage table.
         lineage_table = s3tables.CfnTable(
             self,
             "LineageTable",
@@ -90,17 +89,26 @@ class MemoryLabStack(Stack):
             iceberg_metadata=s3tables.CfnTable.IcebergMetadataProperty(
                 iceberg_schema=s3tables.CfnTable.IcebergSchemaProperty(
                     schema_field_list=[
+                        # Envelope
                         s3tables.CfnTable.SchemaFieldProperty(name="event_id", type="string", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="event_type", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="agent_id", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="stream_id", type="string", required=True),
-                        s3tables.CfnTable.SchemaFieldProperty(name="event_type", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="memory_id", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="payload", type="string", required=False),
                         s3tables.CfnTable.SchemaFieldProperty(name="actor_class", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="source_class", type="string", required=True),
-                        s3tables.CfnTable.SchemaFieldProperty(name="event_time", type="timestamp", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="schema_version", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="parent_event_id", type="string", required=False),
+                        # physical_moment block (Tier 1a non-nullable; full JSON preserved)
+                        s3tables.CfnTable.SchemaFieldProperty(name="physical_moment", type="string", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="pm_tai_iso", type="string", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="pm_solar_age_myr", type="double", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="pm_ecliptic_lon_deg", type="double", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="pm_sequence_in_stream", type="long", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="pm_hlc_timestamp", type="string", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="pm_hlc_signature_eligible", type="boolean", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="pm_time_context_id", type="string", required=True),
                     ]
                 ),
                 table_properties={"format-version": "2"},

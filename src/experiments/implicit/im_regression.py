@@ -21,6 +21,7 @@ from src.experiments.implicit.im_o_claim_implausibility import run as run_o
 from src.experiments.implicit.im_p_default_mode_decision import run as run_p
 from src.experiments.implicit.im_q_traffic_evidence import run as run_q
 from src.experiments.implicit.im_r_provenance_signal_writer import run as run_r
+from src.experiments.implicit.im_t_tai_timekeeping import run as run_t
 from src.implicit_memory.settings import load_implicit_test_settings
 
 
@@ -46,6 +47,7 @@ def run() -> dict:
     p = run_p()
     q = run_q()
     r = run_r()
+    t = run_t()
 
     # explicit flood fail gates
     flood_gate_ok = (
@@ -71,7 +73,8 @@ def run() -> dict:
     }
 
     uncertainty_suite_pass = l["pass"] and m["pass"] and n["pass"] and o["pass"] and p["pass"] and q["pass"] and r["pass"]
-    suite_pass = a["pass"] and b["pass"] and c["pass"] and d["pass"] and e["pass"] and f["pass"] and g["pass"] and h["pass"] and i["pass"] and j["pass"] and k["pass"] and flood_gate_ok and uncertainty_suite_pass
+    tai_suite_pass = t["pass"]
+    suite_pass = a["pass"] and b["pass"] and c["pass"] and d["pass"] and e["pass"] and f["pass"] and g["pass"] and h["pass"] and i["pass"] and j["pass"] and k["pass"] and flood_gate_ok and uncertainty_suite_pass and tai_suite_pass
     threshold_pass = all(threshold_checks.values())
     overall_pass = suite_pass and (threshold_pass if cfg.strict_regression_gate else True)
 
@@ -95,10 +98,14 @@ def run() -> dict:
         "p_pass": p["pass"],
         "q_pass": q["pass"],
         "r_pass": r["pass"],
+        "t_pass": t["pass"],
+        "t_hook_pass_count": t.get("pass_count"),
+        "t_hook_total": t.get("hook_count"),
         "q_traffic_default_mode": q.get("default_mode"),
         "q_traffic_rationale": q.get("rationale"),
         "flood_gate_ok": flood_gate_ok,
         "uncertainty_suite_pass": uncertainty_suite_pass,
+        "tai_suite_pass": tai_suite_pass,
         "strict_regression_gate": cfg.strict_regression_gate,
         "deterministic_seed": cfg.deterministic_seed,
         "primary_metrics": primary_metrics,
@@ -134,6 +141,7 @@ def run() -> dict:
                 "p": p.get("replay"),
                 "q": q.get("replay"),
                 "r": r,
+                "t": t.get("replay"),
             },
         ),
     }
