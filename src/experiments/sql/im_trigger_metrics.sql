@@ -8,7 +8,7 @@ WITH base AS (
     memory_id,
     pm_tai_iso,
     payload
-  FROM memory_lab.memory_events_v5
+  FROM memory_lab.memory_events_v7
   WHERE stream_id LIKE 'im-%'
 ),
 trigger_eval AS (

@@ -28,13 +28,14 @@ This directory contains AWS CDK infrastructure for the memory lab backend.
   - `namespace`: `AWS_S3_TABLE_NAMESPACE` (default: `memory_lab`)
   - Depends on table bucket
 - **Iceberg table** (`aws_s3tables.CfnTable`)
-  - `table_name`: `AWS_S3_TABLE_NAME` (default: `memory_events_v5`)
+  - `table_name`: `AWS_S3_TABLE_NAME` (default: `memory_events_v7`)
   - `open_table_format`: `ICEBERG`
   - `table_properties`: `format-version=2`
   - Depends on namespace
-  - Schema fields:
-    - required: `event_id`, `agent_id`, `stream_id`, `event_type`, `memory_id`, `actor_class`, `source_class`, `event_time`, `schema_version`
-    - optional: `payload`, `parent_event_id`
+  - Schema fields (v7 envelope; `event_time` removed):
+    - required: `event_id`, `event_type`, `agent_id`, `stream_id`, `memory_id`, `actor_class`, `source_class`, `schema_version`, `record_kind`
+    - `physical_moment` block (required): JSON column `physical_moment` plus hot columns `pm_tai_iso`, `pm_solar_age_myr`, `pm_ecliptic_lon_deg`, `pm_sequence_in_stream`, `pm_hlc_timestamp`, `pm_hlc_signature_eligible`, `pm_time_context_id`
+    - optional: `payload`, `parent_event_id`, `assertion_kind`, `subject_event_id`, `subject_record_kind`, `subject_assertion_kind`
 
 ### 3) Lineage ingress bucket (raw event ingress)
 
@@ -102,7 +103,7 @@ If missing, stack raises `ValueError`.
 
 ### Optional (with defaults)
 
-- `AWS_S3_TABLE_NAME` = `memory_events_v5`
+- `AWS_S3_TABLE_NAME` = `memory_events_v7`
 - `AWS_S3_TABLE_NAMESPACE` = `memory_lab`
 - `AWS_ATHENA_WORKGROUP_NAME` = `memory-lab`
 - `AWS_ATHENA_DATABASE` = `memory_lab`
@@ -148,7 +149,7 @@ flowchart LR
     subgraph Canonical[Canonical Lineage]
       TB[S3 Tables Bucket]
       NS[Namespace]
-      LT[Iceberg Table\nmemory_events_v5 default]
+      LT[Iceberg Table\nmemory_events_v7 default]
       TB --> NS --> LT
     end
 

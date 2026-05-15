@@ -35,7 +35,7 @@ Every new event must include:
 - `parent_event_id` (nullable)
 - `record_kind` (required, closed enum: `lineage_meta | memory_event | decision_event | observation_event | policy_event`)
 - `assertion_kind` (required when `record_kind ∈ {memory_event, observation_event}`; nullable otherwise — closed enum: `belief | claim | memory | evidence | reality_observation`)
-- Decision events carrying an `uncertainty_triple` in their payload must also carry `subject_event_id` / `subject_record_kind` / `subject_assertion_kind` (per EPISTEMIC_TRIANGLE §3.3)
+- Decision events carrying an `uncertainty_triple` in their payload must also carry `subject_event_id` / `subject_record_kind` / `subject_assertion_kind` (per EPISTEMIC_TRIANGLE §3.3). The `uncertainty_triple` shape and production rules are in `specs/THREE_AXIS_UNCERTAINTY.md`; the `confidence_in_provenance_chain` axis is sourced from provenance signals per `specs/PROVENANCE_SIGNAL_WRITER.md`.
 
 `event_time` is removed in v7+. The canonical anchor is `physical_moment.tai_iso`; ingestion quarantines any event that still carries `event_time` (reason: `legacy_event_time_present`).
 
@@ -79,6 +79,16 @@ Anchored at TAI `2026-05-14T17:47:57.222` by operator statement (see [`notes/age
 - Do not consume tokens or test cycles migrating existing S3 objects to newer schema versions.
 - Regenerate by executing experiments and regression tests; new objects, artifacts, and canonical rows come from fresh runs.
 - This override takes precedence over any preservation reflex implied elsewhere in the repo.
+
+## Documentation conventions
+
+The canonical lineage table has been re-cut seven times during the lab phase (v1 → v7). Every cut where docs spelled the version inline produced README/spec/SQL drift that had to be hand-fixed. To stop the churn:
+
+- **Do not write the table version literal (e.g. `memory_events_v7`) in docs.** Prose docs (root `README.md`, `specs/AGENT_PRIMER.md`, this file, subdir READMEs other than `stacks/README.md`) must reference the runtime-resolved name via `$AWS_ATHENA_TARGET_TABLE_FQN` (set in `.env`) or `AWS_S3_TABLE_NAME` for the bare table name.
+- **Do not write the `schema_version` literal (e.g. `7.0`) in docs.** Reference `src/types.py::EVENT_SCHEMA_VERSION` instead; that constant is the single source of truth.
+- **One sanctioned exception: `stacks/README.md`.** It documents the CDK code's *default* values, which are literal in `stacks/memory_lab/memory_lab_stack.py`. When you bump the default in the stack, update `stacks/README.md` in the same change.
+- **SQL audit packs are a known exception** (Athena does not natively template table names). They carry the literal version and get bumped en-masse at each cutover (`sed -i '' s/memory_events_vN/memory_events_v(N+1)/`). A future change should add a `${TARGET_TABLE}` placeholder + a `run_sql_file.py` substitution step so even these stop drifting.
+- **When cutting a new canonical table:** update `.env` / `.env.example`, the CDK default in `stacks/memory_lab/memory_lab_stack.py`, the matching prose in `stacks/README.md`, and the SQL packs. Nothing else in the doc tree should require edits. If you find yourself editing a doc to bump a version literal, that doc has drifted from this convention — de-version it instead of fixing the literal.
 
 ## Working conventions
 

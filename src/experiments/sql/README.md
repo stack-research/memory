@@ -13,7 +13,7 @@ Covers:
 - aggregate drift summary
 
 Run in Athena (workgroup `memory-lab`) against:
-- `memory_lab.memory_events_v5` (default)
+- canonical lineage table — `$AWS_ATHENA_TARGET_TABLE_FQN` (set in `.env`). The SQL files themselves carry the version literal and are bumped en-masse at each cutover; see `AGENTS.md` § Documentation conventions.
 
 Or run automatically from repo root:
 - `make e2-analysis`
@@ -91,6 +91,18 @@ Covers:
 
 Run automatically from repo root:
 - `make phase4-audit`
+
+## Axis Dominance Audit
+
+File: `axis_dominance_audit.sql`
+
+Covers:
+- three-axis tie detection on `uncertainty_triple` payloads (catches uniform-input artifacts that phase4 missed)
+- per-event-type tie rates and non-trivial-value ties
+- companion analysis to `specs/THREE_AXIS_UNCERTAINTY.md` and `notes/agent-pov/2026-05-12-axis-distribution-from-runs.md`
+
+Run automatically from repo root:
+- `make axis-dominance-audit`
 
 ## Phase 5 Replay/Rebuild Hardening Audit
 

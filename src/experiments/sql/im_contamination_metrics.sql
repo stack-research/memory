@@ -6,7 +6,7 @@ WITH base AS (
     event_type,
     payload,
     pm_tai_iso
-  FROM memory_lab.memory_events_v5
+  FROM memory_lab.memory_events_v7
   WHERE stream_id LIKE 'im-%'
 ),
 contam AS (

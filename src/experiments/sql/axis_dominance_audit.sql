@@ -1,6 +1,6 @@
 -- Axis Dominance Audit Query Pack
 -- Flags suspicious patterns in three-axis uncertainty payloads.
--- Default table: memory_lab.memory_events_v5
+-- Default table: memory_lab.memory_events_v7
 --
 -- Motivation: phase4 audit only catches missing fields. It does not catch
 -- the case where all three axes evaluate to the same number (a tie), which
@@ -33,7 +33,7 @@ SELECT
       THEN 1 ELSE 0
     END
   ) AS non_trivial_three_axis_ties
-FROM memory_lab.memory_events_v5
+FROM memory_lab.memory_events_v7
 WHERE json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_claim') IS NOT NULL
 GROUP BY 1
 ORDER BY 1;
@@ -46,7 +46,7 @@ SELECT
   event_type,
   json_extract_scalar(payload, '$.dominant_axis') AS dominant_axis,
   COUNT(*) AS n
-FROM memory_lab.memory_events_v5
+FROM memory_lab.memory_events_v7
 WHERE json_extract_scalar(payload, '$.dominant_axis') IS NOT NULL
 GROUP BY 1, 2
 ORDER BY 1, 3 DESC;
@@ -71,7 +71,7 @@ SELECT
       THEN 1 ELSE 0
     END
   ) AS all_defaults
-FROM memory_lab.memory_events_v5
+FROM memory_lab.memory_events_v7
 WHERE json_extract_scalar(payload, '$.provenance_signals.parent_chain_depth') IS NOT NULL
 GROUP BY 1
 ORDER BY 1;
@@ -89,7 +89,7 @@ SELECT
   json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_recall_process') AS recall_process,
   json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_provenance_chain') AS provenance_chain,
   json_extract_scalar(payload, '$.dominant_axis') AS dominant_axis
-FROM memory_lab.memory_events_v5
+FROM memory_lab.memory_events_v7
 WHERE ROUND(CAST(json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_claim') AS DOUBLE), 6)
     = ROUND(CAST(json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_recall_process') AS DOUBLE), 6)
   AND ROUND(CAST(json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_recall_process') AS DOUBLE), 6)

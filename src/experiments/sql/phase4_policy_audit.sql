@@ -1,6 +1,6 @@
 -- Phase 4 Policy Audit Query Pack
 -- Verifies policy metadata and reason taxonomy for recalled/rejected/quarantined events.
--- Default table: memory_lab.memory_events_v5
+-- Default table: memory_lab.memory_events_v7
 
 -- 1) Coverage check: policy audit fields present by event type
 SELECT
@@ -9,7 +9,7 @@ SELECT
   SUM(CASE WHEN json_extract_scalar(payload, '$.policy_id') IS NULL THEN 1 ELSE 0 END) AS missing_policy_id,
   SUM(CASE WHEN json_extract_scalar(payload, '$.policy_version') IS NULL THEN 1 ELSE 0 END) AS missing_policy_version,
   SUM(CASE WHEN json_extract_scalar(payload, '$.policy_effective_at') IS NULL THEN 1 ELSE 0 END) AS missing_policy_effective_at
-FROM memory_lab.memory_events_v5
+FROM memory_lab.memory_events_v7
 WHERE event_type IN ('recalled', 'rejected', 'quarantined')
 GROUP BY 1
 ORDER BY 1;
@@ -19,7 +19,7 @@ SELECT
   event_type,
   json_extract_scalar(payload, '$.reason') AS reason,
   COUNT(*) AS n
-FROM memory_lab.memory_events_v5
+FROM memory_lab.memory_events_v7
 WHERE event_type IN ('rejected', 'quarantined')
 GROUP BY 1, 2
 ORDER BY 1, 2;
@@ -34,7 +34,7 @@ SELECT
   json_extract_scalar(payload, '$.policy_version') AS policy_version,
   json_extract_scalar(payload, '$.policy_effective_at') AS policy_effective_at,
   json_extract_scalar(payload, '$.reason') AS reason
-FROM memory_lab.memory_events_v5
+FROM memory_lab.memory_events_v7
 WHERE event_type IN ('recalled', 'rejected', 'quarantined')
 ORDER BY pm_tai_iso DESC
 LIMIT 100;
@@ -51,7 +51,7 @@ SELECT
   SUM(CASE WHEN json_extract_scalar(payload, '$.provenance_signals.parent_chain_depth') IS NULL THEN 1 ELSE 0 END) AS missing_parent_chain_depth,
   SUM(CASE WHEN json_extract_scalar(payload, '$.provenance_signals.source_diversity') IS NULL THEN 1 ELSE 0 END) AS missing_source_diversity,
   SUM(CASE WHEN json_extract_scalar(payload, '$.provenance_signals.age_of_original_source') IS NULL THEN 1 ELSE 0 END) AS missing_age_of_original_source
-FROM memory_lab.memory_events_v5
+FROM memory_lab.memory_events_v7
 WHERE event_type IN ('recalled', 'rejected', 'implicit_admitted', 'implicit_rejected')
 GROUP BY 1
 ORDER BY 1;

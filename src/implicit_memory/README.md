@@ -29,9 +29,12 @@ This module implements governed implicit memory control: automatic trigger evalu
 - `policy_mutation.py` — threshold/procedure mutation primitives
 - `procedure_lifecycle.py` — reinforcement/decay/trust decay
 - `procedure_state_store.py` — in-memory/S3 procedure state persistence
+- `provenance_resolver.py` — resolves `confidence_in_provenance_chain` from emitted provenance signals (per `specs/PROVENANCE_SIGNAL_WRITER.md`)
+- `lineage_events.py` — helpers for constructing implicit-side lineage events
 - `scheduler.py` — scheduled cue handling
 - `replay.py` — lineage replay summary reconstruction
 - `run_loop.py` — runnable loop entrypoint
+- `settings.py` — implicit-loop runtime settings
 
 ## Invariants
 

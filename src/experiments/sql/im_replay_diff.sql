@@ -6,7 +6,7 @@ WITH base AS (
     stream_id,
     event_type,
     COUNT(*) AS cnt
-  FROM memory_lab.memory_events_v5
+  FROM memory_lab.memory_events_v7
   WHERE stream_id LIKE 'im-%'
   GROUP BY 1, 2
 ),

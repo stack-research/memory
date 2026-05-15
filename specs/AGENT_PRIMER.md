@@ -66,7 +66,7 @@ flowchart LR
     Ingress["S3 ingress<br/>raw JSON"]
     Raw["Athena lineage_events_raw"]
     Quarantine["Athena lineage_events_quarantine"]
-    Canon["S3 Tables Iceberg<br/>memory_events_v5"]
+    Canon["S3 Tables Iceberg<br/>$AWS_ATHENA_TARGET_TABLE_FQN"]
     Vectors["S3 Vectors<br/>memories-v1"]
     ProcState["S3 procedure-state/"]
     Bus["EventBridge memory-lab"]
@@ -98,12 +98,12 @@ flowchart LR
 
 Concrete names. No prose.
 
-- **S3 Tables Iceberg** — `memory_lab.memory_events_v5`. Canonical lineage. Append-only. Source of truth.
+- **S3 Tables Iceberg** — canonical lineage, append-only, source of truth. Table name resolved at runtime from `AWS_ATHENA_TARGET_TABLE_FQN` in `.env`; current `schema_version` lives in `src/types.py::EVENT_SCHEMA_VERSION`. Do not write the version literal here (see `AGENTS.md` § Documentation conventions).
 - **S3 Vectors** — index `memories-v1`, 1536-dim, cosine. Rebuildable recall index. Not source of truth.
 - **S3 ingress bucket** — raw JSON event files, partitioned `agent_id=.../stream_id=.../event_date=.../<event_time>_<event_id>.json`.
 - **Athena `lineage_events_raw`** — validatable intake over the ingress prefix.
 - **Athena `lineage_events_quarantine`** — invalid rows with a deterministic `reason`.
-- **Canonical INSERT** — `INSERT INTO memory_lab.memory_events_v5` from raw rows that pass validation.
+- **Canonical INSERT** — `INSERT INTO $AWS_ATHENA_TARGET_TABLE_FQN` from raw rows that pass validation.
 - **EventBridge `memory-lab` bus + SQS `memory-lab.fifo` + DLQ** — control-plane cues. Defined in the stack. Not yet wired into the implicit loop.
 - **S3 `procedure-state/`** — mutable cognitive state (procedure strength, trust, urgency streak). Kept separate from lineage on purpose.
 
@@ -113,7 +113,9 @@ Defined in `stacks/memory_lab/memory_lab_stack.py`. Full inventory in `stacks/RE
 
 Concrete entry points an agent is likely to touch:
 
-- **Event envelope** — `src/types.py` (`MemoryEvent`, `new_event`)
+- **Event envelope** — `src/types.py` (`MemoryEvent`, `new_event`; current schema version pinned in `EVENT_SCHEMA_VERSION`)
+- **Record/assertion taxonomy (v7)** — `src/epistemic_triangle/` (mapping table, validation, decision-event subject linkage; implements `specs/EPISTEMIC_TRIANGLE.md`)
+- **TAI capture + `physical_moment`** — `src/heliotime/` (wall-clock TAI capture at the edge) and `src/timekeeping/` (deterministic `physical_moment` construction, `time_context_declared`, HLC; implements `specs/TAI_TIMEKEEPING.md`)
 - **Lineage emit** — `src/lineage_engine.py` (`LineageEngine.emit`)
 - **Storage write** — `src/storage.py` (`LineageStorage.append_event`) writes JSON to S3 ingress; canonical inserts happen later via Athena ingestion
 - **Athena ingestion** — `src/ingestion/athena_ingestion.py` (`AthenaLineageIngestionJob.run_once`)
@@ -136,11 +138,15 @@ Concrete entry points an agent is likely to touch:
 From `AGENTS.md`, every event must include:
 
 - `event_id`, `event_type`, `agent_id`, `stream_id`, `memory_id`
-- `event_time`, `schema_version`, `payload`
+- `physical_moment` (Tier 1a non-nullable: `tai_iso`, `solar_age_myr`, `ecliptic_lon_deg`, `sequence_in_stream`, `hlc_timestamp`, `time_context_id`; Tier 1b/Tier 2 per `specs/TAI_TIMEKEEPING.md` §5)
+- `schema_version` (defined in `src/types.py::EVENT_SCHEMA_VERSION`), `payload`
 - `actor_class`, `source_class`
 - `parent_event_id` (nullable)
+- `record_kind` (closed enum: `lineage_meta | memory_event | decision_event | observation_event | policy_event`)
+- `assertion_kind` (required when `record_kind ∈ {memory_event, observation_event}`; closed enum: `belief | claim | memory | evidence | reality_observation`)
+- Decision events that carry an `uncertainty_triple` payload also carry `subject_event_id` / `subject_record_kind` / `subject_assertion_kind` (per `specs/EPISTEMIC_TRIANGLE.md` §3.3)
 
-Enforced by `LineageStorage._validate_event` before the JSON is written to ingress. Missing fields raise `ValueError`. Schema version is `1.0`.
+The legacy `event_time` envelope field is removed. The physical-time anchor is `physical_moment.tai_iso`; ingestion quarantines any event that still carries `event_time` (`legacy_event_time_present`). Enforced by `LineageStorage._validate_event` before the JSON is written to ingress; missing fields raise `ValueError`.
 
 ## 9) Eligibility math (current state)
 
@@ -182,14 +188,16 @@ Self-hardening: when attack signals are detected, the loop emits `policy_thresho
 From `AGENTS.md`:
 
 1. Memory behavior can change; lineage history must not be rewritten.
-2. S3 Tables is canonical lineage (`memory_lab.memory_events_v5`).
+2. S3 Tables is canonical lineage. The active table is named by `AWS_ATHENA_TARGET_TABLE_FQN` in `.env`; the current `schema_version` lives in `src/types.py::EVENT_SCHEMA_VERSION`. Earlier-epoch tables are historical containers; no new writes.
 3. S3 Vectors is a rebuildable recall index, not source of truth.
 4. Do not auto-resolve contradictions.
+5. No current wall-clock influence on replay outputs. Replay-deterministic fields derive from lineage-visible inputs (`physical_moment.tai_iso`, `sequence_in_stream`, HLC step, declared time context). Wall-clock reads happen only at capture in `heliotime.now()`.
+6. No silent epistemic collapse. The five-term taxonomy (`belief / claim / memory / evidence / reality_observation`) is enforced at the schema edge via `record_kind` + `assertion_kind` per `specs/EPISTEMIC_TRIANGLE.md`.
 
 Additional, from `specs/IMPLICIT_MEMORY_SPEC.md`:
 
-5. No implicit decision is silent: every trigger evaluation emits an event.
-6. Reflex mode is bounded and cannot run indefinitely.
+7. No implicit decision is silent: every trigger evaluation emits an event.
+8. Reflex mode is bounded and cannot run indefinitely.
 
 The "every trigger evaluation" clause includes `defer` and `no_op` — see `specs/IMPLICIT_MEMORY_SPEC.md` section 7.2.
 
@@ -224,7 +232,7 @@ Anything not in the Makefile uses the raw form:
 - Any experiment by name:
   `PYTHONPATH=. uv run --project stacks python -m src.run_experiment <name>`
 
-Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-p`, `im-aws`, `im-regression`.
+Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-u`, `im-aws`, `im-regression`.
 
 ## 14) Deep dives (open only when needed)
 
@@ -249,6 +257,6 @@ The system knows these are not yet done. They are candidates for the next plan, 
 - **Envelope `payload` is free-form.** `claim`, `evidence`, `belief`, `memory` are enforced by convention, not by schema. A future loop could quietly conflate them.
 - **Provenance signal production is specified but may be partially unimplemented in runtime paths.** See `specs/PROVENANCE_SIGNAL_WRITER.md`; verify chain-derived signals are produced and consumed before treating `confidence_in_provenance_chain` as fully evidence-backed.
 - **Static cue providers.** `StaticObservationProvider` and `StaticCueProvider` in `src/implicit_memory/run_loop.py` are stubs. The EventBridge bus and SQS FIFO queue exist in the stack but nothing pushes real signals through them.
-- **TAI timekeeping is specified but unimplemented.** Canonical lineage still uses v5/UTC-era event time until `specs/TAI_TIMEKEEPING.md` is implemented with v6, `physical_moment`, `time_context_declared`, and deterministic HLC.
+- **TAI timekeeping is live; some surfaces still maturing.** Canonical lineage carries the `physical_moment` block (`tai_iso`, `solar_age_myr`, `ecliptic_lon_deg`, `sequence_in_stream`, `hlc_timestamp`, `time_context_id`); `src/heliotime/` produces TAI at capture and `src/timekeeping/` builds `physical_moment` and the HLC. Outstanding edges are tracked in `specs/TAI_TIMEKEEPING.md` §implementation-checklist (e.g. `time_context_declared` emission coverage, ephemeris-data pinning, full HLC determinism under multi-stream replay).
 
 When in doubt, prefer adding a lineage event over editing existing logic. Replay is the safety net.
