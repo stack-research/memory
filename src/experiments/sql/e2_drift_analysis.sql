@@ -4,7 +4,7 @@
 
 -- 1) Event timeline for E2 stream
 SELECT
-  event_time,
+  pm_tai_iso,
   event_type,
   memory_id,
   parent_event_id,
@@ -14,11 +14,11 @@ SELECT
   json_extract_scalar(payload, '$.claim_after') AS claim_after
 FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e2'
-ORDER BY event_time;
+ORDER BY pm_tai_iso;
 
 -- 2) Drift progression across mutation steps
 SELECT
-  event_time,
+  pm_tai_iso,
   CAST(json_extract_scalar(payload, '$.drift.cosine_similarity_to_base') AS DOUBLE) AS cosine_to_base,
   CAST(json_extract_scalar(payload, '$.drift.cosine_similarity_to_previous') AS DOUBLE) AS cosine_to_previous,
   (1.0 - CAST(json_extract_scalar(payload, '$.drift.cosine_similarity_to_base') AS DOUBLE)) AS drift_from_base,
@@ -26,11 +26,11 @@ SELECT
 FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e2'
   AND event_type = 'mutated'
-ORDER BY event_time;
+ORDER BY pm_tai_iso;
 
 -- 3) Metadata evolution under recall pressure
 SELECT
-  event_time,
+  pm_tai_iso,
   json_extract_scalar(payload, '$.context') AS context,
   CAST(json_extract_scalar(payload, '$.trust_after') AS DOUBLE) AS trust_after,
   CAST(json_extract_scalar(payload, '$.confidence_after') AS DOUBLE) AS confidence_after,
@@ -38,7 +38,7 @@ SELECT
 FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e2'
   AND event_type = 'mutated'
-ORDER BY event_time;
+ORDER BY pm_tai_iso;
 
 -- 4) Quick aggregate summary
 SELECT

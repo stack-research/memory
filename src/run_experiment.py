@@ -37,6 +37,7 @@ from src.experiments.implicit.im_q_traffic_evidence import run as run_im_q
 from src.experiments.implicit.im_r_provenance_signal_writer import run as run_im_r
 from src.experiments.implicit.im_s_provenance_writer_closeout import run as run_im_s
 from src.experiments.implicit.im_t_tai_timekeeping import run as run_im_t
+from src.experiments.implicit.im_u_epistemic_triangle import run as run_im_u
 from src.experiments.implicit.im_regression import run as run_im_regression
 from src.storage import LineageStorage
 
@@ -75,6 +76,7 @@ EXPERIMENTS = {
     "im-r": run_im_r,
     "im-s": run_im_s,
     "im-t": run_im_t,
+    "im-u": run_im_u,
     "im-regression": run_im_regression,
 }
 

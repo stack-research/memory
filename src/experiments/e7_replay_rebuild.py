@@ -8,7 +8,7 @@ from typing import Any
 from src.config import load_config
 from src.embeddings import BedrockEmbeddings
 from src.ingestion.athena_ingestion import AthenaLineageIngestionJob
-from src.lineage_engine import LineageEngine
+from src.experiments.engine_helper import make_experiment_engine
 from src.lineage_reader import build_lineage_reader
 from src.storage import LineageStorage
 from src.types import EVENT_SCHEMA_VERSION
@@ -25,7 +25,7 @@ def run() -> dict[str, Any]:
     storage = LineageStorage(cfg)
     vectors = RecallVectors(cfg)
     embedder = BedrockEmbeddings(cfg)
-    lineage = LineageEngine(storage)
+    lineage = make_experiment_engine(storage)
     ingestion = AthenaLineageIngestionJob(cfg)
     lineage_reader = build_lineage_reader(cfg)
 

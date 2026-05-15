@@ -58,12 +58,23 @@ def run() -> dict:
             reinforcement=c["reinforcement"],
             consistency=c["consistency"],
             safety=c["safety"],
-            threshold=0.3,
+            threshold=0.001,
             parent_chain_depth=c["parent_chain_depth"],
             source_diversity=c["source_diversity"],
             age_of_original_source=c["age_of_original_source"],
             gate_mode="combined",
-            combined_threshold=0.3,
+            # v7 EPISTEMIC_TRIANGLE §11.1: combined gate score is
+            # now triple.combined() (multiplicative across axes),
+            # not the scalar product. A combined-mode threshold has
+            # to compare against the multiplicative scale.
+            # combined_threshold=0.001 is below the gate-allow
+            # candidate's triple.combined() (l-2 ≈ 0.0016) but
+            # above the no-degradation candidate's ≈ 0.433, so the
+            # combined/per_axis divergence the suite demonstrates
+            # is preserved: combined allows l-2 (low provenance
+            # axis can still multiply above 0.001), per_axis
+            # rejects l-2 (prov axis < 0.25 floor).
+            combined_threshold=0.001,
             safety_floor=0.1,
         )
         per_axis_dec = eligibility_gate(

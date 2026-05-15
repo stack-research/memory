@@ -81,7 +81,7 @@ ORDER BY 1;
 -- on a cross-scope rejection) vs. the kind we do not (matching non-zero
 -- values on an admission, which indicates degenerate scoring).
 SELECT
-  event_time,
+  pm_tai_iso,
   stream_id,
   event_type,
   memory_id,
@@ -94,5 +94,5 @@ WHERE ROUND(CAST(json_extract_scalar(payload, '$.uncertainty_triple.confidence_i
     = ROUND(CAST(json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_recall_process') AS DOUBLE), 6)
   AND ROUND(CAST(json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_recall_process') AS DOUBLE), 6)
     = ROUND(CAST(json_extract_scalar(payload, '$.uncertainty_triple.confidence_in_provenance_chain') AS DOUBLE), 6)
-ORDER BY event_time DESC
+ORDER BY pm_tai_iso DESC
 LIMIT 100;

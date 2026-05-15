@@ -19,11 +19,11 @@ SELECT
   json_extract_scalar(payload, '$.candidate_stream_id') AS candidate_stream_id,
   json_extract(payload, '$.suspicion_tags') AS suspicion_tags,
   json_extract(payload, '$.threat_labels') AS threat_labels,
-  event_time
+  pm_tai_iso
 FROM lineage_events_raw
 WHERE event_type = 'rejected'
   AND json_extract_scalar(payload, '$.reason') = 'cross_scope_reference_attempt'
-ORDER BY event_time DESC
+ORDER BY pm_tai_iso DESC
 LIMIT 100;
 
 -- 3) Quarantine events should carry machine-readable suspicion/threat labels
@@ -32,8 +32,8 @@ SELECT
   json_extract_scalar(payload, '$.reason') AS reason,
   json_extract(payload, '$.suspicion_tags') AS suspicion_tags,
   json_extract(payload, '$.threat_labels') AS threat_labels,
-  event_time
+  pm_tai_iso
 FROM lineage_events_raw
 WHERE event_type = 'quarantined'
-ORDER BY event_time DESC
+ORDER BY pm_tai_iso DESC
 LIMIT 100;

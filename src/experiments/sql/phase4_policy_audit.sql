@@ -26,7 +26,7 @@ ORDER BY 1, 2;
 
 -- 3) Spot-audit recent policy-tagged events
 SELECT
-  event_time,
+  pm_tai_iso,
   stream_id,
   event_type,
   memory_id,
@@ -36,7 +36,7 @@ SELECT
   json_extract_scalar(payload, '$.reason') AS reason
 FROM memory_lab.memory_events_v5
 WHERE event_type IN ('recalled', 'rejected', 'quarantined')
-ORDER BY event_time DESC
+ORDER BY pm_tai_iso DESC
 LIMIT 100;
 
 -- 4) Three-axis uncertainty payload coverage on required decision families

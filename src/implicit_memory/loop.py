@@ -46,6 +46,13 @@ class LineageEmitter(Protocol):
         actor_class: str = "implicit_memory_controller",
         source_class: str = "internal_engine",
         parent_event_id: str | None = None,
+        # v7 EPISTEMIC_TRIANGLE envelope additions; emitters may
+        # ignore these for non-decision events.
+        record_kind: str | None = None,
+        assertion_kind: str | None = None,
+        subject_event_id: str | None = None,
+        subject_record_kind: str | None = None,
+        subject_assertion_kind: str | None = None,
     ): ...
 
 
@@ -84,9 +91,28 @@ class LoopStats:
 
 
 class ImplicitControllerLoop:
+    def _subject_classification_for_memory(self, memory_id: str) -> dict[str, str]:
+        """Build the v7 subject classification envelope for a
+        decision event whose subject is a memory_id.
+
+        Delegates to `src.epistemic_triangle.memory_subject_placeholder`
+        — the shared deterministic placeholder per EPISTEMIC_TRIANGLE
+        §3.3 + the v1.2 promotion-review caution #3. The payload
+        also gets `subject_kind_source: "v1_default"` so audits
+        distinguish defaulted-from-derived (no silent provider fill).
+        """
+        from src.epistemic_triangle import memory_subject_placeholder
+
+        return memory_subject_placeholder(memory_id)
+
     def _emit_rejected(self, *, memory_id: str, reason: str, **extra_payload: object) -> None:
         payload: dict[str, object] = {"reason": reason}
         payload.update(extra_payload)
+        # Mark subject classification as v1 default when an
+        # uncertainty_triple is present (decision is axis-bearing).
+        if "uncertainty_triple" in extra_payload:
+            payload.setdefault("subject_kind_source", "v1_default")
+        subject = self._subject_classification_for_memory(memory_id)
         self.lineage.emit(
             event_type="implicit_rejected",
             agent_id=self.agent_id,
@@ -95,7 +121,92 @@ class ImplicitControllerLoop:
             actor_class="implicit_memory_controller",
             source_class="internal_engine",
             payload=payload,
+            **subject,
         )
+
+    def _build_v7_axis_signals(self, *, memory_id: str, gate_inputs: dict[str, float]):
+        """Construct the three NormalizedSignals the v7 gate expects.
+
+        Per EPISTEMIC_TRIANGLE §11, `signal is None` is only allowed
+        on pre-v7 paths. v7 emit paths must supply signals.
+
+        - **Provenance**: the upstream resolver already computed
+          `parent_chain_depth` / `source_diversity` /
+          `age_of_original_source` and placed them on `gate_inputs`,
+          so we package those as `signal_source = "computed"`.
+        - **Claim**: this loop has no in-scope lineage reader for
+          `evidence_link_declared` events, so the walker is called
+          with an empty link set. It returns a `fallback` signal
+          (`no_evidence_links`). The gate applies the fallback
+          multiplier and the payload surfaces axis_fallback_used.
+        - **Recall**: same shape — no prior `recalled` events in
+          scope; walker returns `first_recall` fallback.
+
+        Phase 5 (control-plane ingest) wires real walkers in when
+        the loop gains lineage-reader access.
+        """
+        from src.explicit_memory.claim import compute_claim_signals
+        from src.explicit_memory.recall_signals import compute_recall_signals
+        from src.explicit_memory.signals import (
+            NormalizedSignals,
+            SignalMethod,
+            SignalSource,
+        )
+
+        as_of_time = self._loop_tick_tai_iso()
+
+        # Provenance — resolver-computed, packaged as NormalizedSignals.
+        prov = NormalizedSignals(
+            signal_source=SignalSource.COMPUTED,
+            signal_method=SignalMethod.PROVENANCE_CHAIN,
+            fallback_reason=None,
+            values={
+                "parent_chain_depth": float(gate_inputs.get("parent_chain_depth", 0.0)),
+                "source_diversity": float(gate_inputs.get("source_diversity", 1.0)),
+                "age_of_original_source": float(gate_inputs.get("age_of_original_source", 0.0)),
+            },
+        )
+
+        # Claim — empty link inputs → fallback("no_evidence_links").
+        claim_target = {
+            "event_id": f"loop-target:{memory_id}",
+            "agent_id": self.agent_id,
+            "assertion_kind": "claim",
+        }
+        claim = compute_claim_signals(
+            target_event=claim_target,
+            link_events=[],
+            evidence_events={},
+            as_of_time=as_of_time,
+        )
+
+        # Recall — empty prior recalls → fallback("first_recall").
+        recall_target = {
+            "event_type": "recalled",
+            "memory_id": memory_id,
+            "agent_id": self.agent_id,
+            "assertion_kind": "memory",
+            "physical_moment": {"tai_iso": as_of_time, "solar_age_myr": 0.0},
+            "payload": {},
+        }
+        recall = compute_recall_signals(
+            target_event=recall_target,
+            prior_recall_events=[],
+            as_of_time=as_of_time,
+        )
+
+        return claim, recall, prov
+
+    def _loop_tick_tai_iso(self) -> str:
+        """Return a TAI ISO string for this loop tick. Loop callers
+        plumb the tick moment via the controller; for in-memory
+        regression suites we fall back to a fixed anchor to keep
+        replay deterministic (never wall-clock)."""
+        anchor = getattr(self, "_tick_tai_iso", None)
+        if anchor:
+            return str(anchor)
+        # Same fixed anchor InMemoryLineageEngine uses by default.
+        return "2026-05-13T12:00:00.000"
 
     def _admit_and_gate(
         self,
@@ -118,6 +229,16 @@ class ImplicitControllerLoop:
         if admission_reason:
             admitted_payload["reason"] = admission_reason
 
+        # v7 EPISTEMIC_TRIANGLE §11: the live emit path supplies axis
+        # signals to the gate. With current loop scope, claim and
+        # recall fall back; provenance is resolver-computed and
+        # passes through as `signal_source = "computed"`. The gate
+        # surfaces the per-axis fallback markers in the decision
+        # payload (visible to spec §11 hook 8).
+        claim_signals, recall_signals, prov_signals = self._build_v7_axis_signals(
+            memory_id=memory_id, gate_inputs=gate_inputs,
+        )
+
         gate = eligibility_gate(
             relevance=gate_inputs["relevance"],
             trust=gate_inputs["trust"],
@@ -135,6 +256,9 @@ class ImplicitControllerLoop:
             recall_process_threshold=self.cfg.retrieval_policy.uncertainty_recall_process_threshold,
             provenance_chain_threshold=self.cfg.retrieval_policy.uncertainty_provenance_chain_threshold,
             safety_floor=self.cfg.retrieval_policy.uncertainty_safety_floor,
+            claim_signals=claim_signals,
+            recall_signals=recall_signals,
+            provenance_signals=prov_signals,
         )
 
         admitted_payload.update(
@@ -152,10 +276,32 @@ class ImplicitControllerLoop:
                     "source_diversity": gate_inputs.get("source_diversity", 1.0),
                     "age_of_original_source": gate_inputs.get("age_of_original_source", 0.0),
                 },
+                # v7 exit-criteria visibility: carry the normalized
+                # per-axis signal blocks on decision payloads so
+                # audits can prove source lineage for claim/recall/
+                # provenance on a single admitted decision.
+                "claim_signals": claim_signals.as_payload(),
+                "recall_signals": recall_signals.as_payload(),
+                "provenance_signal": prov_signals.to_payload(),
                 "uncertainty_gate_mode": gate.gate_mode,
+                # v7 EPISTEMIC_TRIANGLE: mark subject classification
+                # as v1 default so audits know it's not derived.
+                "subject_kind_source": "v1_default",
+                # v7 §11: per-axis fallback visibility. When any axis
+                # falls back, the multiplier the gate applied and
+                # the closed-enum reason per axis are loud in lineage.
+                "axis_fallback_used": dict(gate.uncertainty_triple.axis_fallback_used),
+                "axis_fallback_reasons": dict(gate.uncertainty_triple.axis_fallback_reasons),
+                "policy_fallback_multiplier": gate.uncertainty_triple.policy_fallback_multiplier,
+                # v7 §11.1: every v7 decision payload names which
+                # scoring function produced it. Audits use this to
+                # verify score_candidate retirement at decision
+                # time, not only via static check.
+                "scoring_function": "score_triple",
             }
         )
 
+        admitted_subject = self._subject_classification_for_memory(memory_id)
         self.lineage.emit(
             event_type="implicit_admitted",
             agent_id=self.agent_id,
@@ -164,6 +310,7 @@ class ImplicitControllerLoop:
             actor_class="implicit_memory_controller",
             source_class=source_class,
             payload=admitted_payload,
+            **admitted_subject,
         )
 
         if not gate.allow_influence:
@@ -184,6 +331,11 @@ class ImplicitControllerLoop:
                     "age_of_original_source": gate_inputs.get("age_of_original_source", 0.0),
                 },
                 uncertainty_gate_mode=gate.gate_mode,
+                # v7 §11 / §11.1 visibility on the rejected branch.
+                axis_fallback_used=dict(gate.uncertainty_triple.axis_fallback_used),
+                axis_fallback_reasons=dict(gate.uncertainty_triple.axis_fallback_reasons),
+                policy_fallback_multiplier=gate.uncertainty_triple.policy_fallback_multiplier,
+                scoring_function="score_triple",
             )
             return False
         return True

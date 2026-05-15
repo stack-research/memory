@@ -6,7 +6,7 @@ WITH base AS (
     stream_id,
     event_type,
     memory_id,
-    event_time,
+    pm_tai_iso,
     payload
   FROM memory_lab.memory_events_v5
   WHERE stream_id LIKE 'im-%'

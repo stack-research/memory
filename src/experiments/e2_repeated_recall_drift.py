@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from src.config import load_config
 from src.embeddings import BedrockEmbeddings
-from src.lineage_engine import LineageEngine
+from src.experiments.engine_helper import make_experiment_engine
 from src.storage import LineageStorage
 from src.vectors import RecallVectors
 
@@ -37,7 +37,7 @@ def run() -> None:
     storage = LineageStorage(cfg)
     vectors = RecallVectors(cfg)
     embedder = BedrockEmbeddings(cfg)
-    lineage = LineageEngine(storage)
+    lineage = make_experiment_engine(storage)
 
     agent_id = "lab-agent-1"
     stream_id = "exp-e2"

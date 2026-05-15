@@ -110,8 +110,14 @@ def compute_chain_signals(
             reason="missing_event_id",
         )
 
-    latest_time = max(e.get("event_time", "") for e in by_id.values())
-    latest_candidates = [e for e in by_id.values() if e.get("event_time", "") == latest_time]
+    # v7 EPISTEMIC_TRIANGLE §8.1: tie-break on pm_tai_iso. The
+    # lineage_reader rows include `pm_tai_iso` (and an `event_time`
+    # alias for v6 compatibility); prefer pm_tai_iso when present.
+    def _anchor(e: dict[str, Any]) -> str:
+        return str(e.get("pm_tai_iso") or e.get("event_time") or "")
+
+    latest_time = max(_anchor(e) for e in by_id.values())
+    latest_candidates = [e for e in by_id.values() if _anchor(e) == latest_time]
     latest = min(latest_candidates, key=lambda e: e.get("event_id", ""))
 
     depth = 0
@@ -171,7 +177,8 @@ def compute_chain_signals(
     source_diversity = max(0.0, min(1.0, distinct_source_classes / chain_length))
 
     try:
-        root_time = _parse_iso(root.get("event_time", ""))
+        root_anchor = root.get("pm_tai_iso") or root.get("event_time", "")
+        root_time = _parse_iso(root_anchor)
         as_of_dt = _parse_iso(as_of_time)
         age_hours = max(0.0, (as_of_dt - root_time).total_seconds() / 3600.0)
     except Exception:

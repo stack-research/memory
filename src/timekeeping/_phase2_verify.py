@@ -1,7 +1,7 @@
 """
-Phase 2 self-test: physical_moment block on canonical v6 events.
+Phase 2 self-test: physical_moment block on canonical v7 events.
 
-Contracts verified:
+Contracts verified (TAI invariants carried into v7):
   - MemoryEvent requires physical_moment with Tier 1a non-nullable.
   - new_event refuses a missing/empty tai_iso (no wall-clock fallback).
   - LineageEngine.emit produces a full physical_moment block:
@@ -12,10 +12,11 @@ Contracts verified:
                                           tz_offset_seconds, ntp_state
       Tier 2 (computed/null+reason): utc_iso always computed; others
                                      null with reason from closed enum
-  - sequence_in_stream and HLC are per-stream and monotonic.
+  - sequence_in_stream is per-stream; v7 (EPISTEMIC_TRIANGLE §10)
+    starts at 0 and HLC is monotonic.
   - Replay determinism: same inputs => same physical_moment.
   - Wall-clock leak in compute_chain_signals.computed_at is closed.
-  - InMemoryLineageEngine carries the same v6 envelope.
+  - InMemoryLineageEngine carries the same v7 envelope.
 
 Run:
   PYTHONPATH=. uv run --project stacks python -m src.timekeeping._phase2_verify
@@ -33,8 +34,11 @@ from src.lineage_engine import LineageEngine
 from src.types import EVENT_SCHEMA_VERSION, MemoryEvent, new_event
 
 
-CTX_ID = "test-time-context-v6"
+CTX_ID = "test-time-context-v7"
 ANCHOR_TAI = "2026-05-13T12:00:00.000"
+# Use a mapped event_type so v7 envelope auto-derives record_kind.
+# `recalled` → memory_event / memory.
+PROBE_EVENT_TYPE = "recalled"
 
 
 def _engine() -> LineageEngine:
@@ -48,14 +52,14 @@ def _moment(tai_iso: str = ANCHOR_TAI) -> PhysicalMoment:
 # --- contract checks --------------------------------------------------------
 
 
-def test_schema_version_is_v6() -> None:
-    assert EVENT_SCHEMA_VERSION == "6.0", f"expected 6.0, got {EVENT_SCHEMA_VERSION}"
+def test_schema_version_is_v7() -> None:
+    assert EVENT_SCHEMA_VERSION == "7.0", f"expected 7.0, got {EVENT_SCHEMA_VERSION}"
 
 
 def test_new_event_requires_physical_moment_tai_iso() -> None:
     try:
         new_event(
-            event_type="probe",
+            event_type=PROBE_EVENT_TYPE,
             agent_id="a",
             stream_id="s",
             memory_id="m",
@@ -63,6 +67,7 @@ def test_new_event_requires_physical_moment_tai_iso() -> None:
             actor_class="t",
             source_class="t",
             physical_moment={},
+            record_kind="memory_event",
         )
     except ValueError as exc:
         assert "tai_iso" in str(exc)
@@ -74,7 +79,7 @@ def test_engine_emit_tier1a_fields() -> None:
     eng = _engine()
     moment = _moment()
     evt = eng.emit(
-        event_type="probe",
+        event_type=PROBE_EVENT_TYPE,
         agent_id="a",
         stream_id="s1",
         memory_id="m1",
@@ -94,26 +99,27 @@ def test_engine_emit_tier1a_fields() -> None:
     assert pm["hlc_signature_eligible"] is True
     assert pm["time_context_id"] == CTX_ID
     assert pm["tai_iso"] == moment.tai_iso
-    assert evt.event_time == moment.tai_iso
-    assert evt.schema_version == "6.0"
+    assert evt.event_time == moment.tai_iso  # backward-compat property
+    assert evt.schema_version == "7.0"
 
 
 def test_sequence_increments_per_stream() -> None:
     eng = _engine()
     moment = _moment()
-    e1 = eng.emit(event_type="x", agent_id="a", stream_id="alpha", memory_id="m", payload={}, tai_moment=moment)
-    e2 = eng.emit(event_type="x", agent_id="a", stream_id="alpha", memory_id="m", payload={}, tai_moment=moment)
-    e3 = eng.emit(event_type="x", agent_id="a", stream_id="beta", memory_id="m", payload={}, tai_moment=moment)
-    assert e1.physical_moment["sequence_in_stream"] == 1
-    assert e2.physical_moment["sequence_in_stream"] == 2
-    assert e3.physical_moment["sequence_in_stream"] == 1, "beta stream must start at 1"
+    e1 = eng.emit(event_type=PROBE_EVENT_TYPE, agent_id="a", stream_id="alpha", memory_id="m", payload={}, tai_moment=moment)
+    e2 = eng.emit(event_type=PROBE_EVENT_TYPE, agent_id="a", stream_id="alpha", memory_id="m", payload={}, tai_moment=moment)
+    e3 = eng.emit(event_type=PROBE_EVENT_TYPE, agent_id="a", stream_id="beta", memory_id="m", payload={}, tai_moment=moment)
+    # v7 (EPISTEMIC_TRIANGLE §10): first event in every stream is seq=0.
+    assert e1.physical_moment["sequence_in_stream"] == 0
+    assert e2.physical_moment["sequence_in_stream"] == 1
+    assert e3.physical_moment["sequence_in_stream"] == 0, "beta stream must start at 0"
 
 
 def test_hlc_steps_per_stream() -> None:
     eng = _engine()
     moment = _moment()
-    e1 = eng.emit(event_type="x", agent_id="a", stream_id="s", memory_id="m", payload={}, tai_moment=moment)
-    e2 = eng.emit(event_type="x", agent_id="a", stream_id="s", memory_id="m", payload={}, tai_moment=moment)
+    e1 = eng.emit(event_type=PROBE_EVENT_TYPE, agent_id="a", stream_id="s", memory_id="m", payload={}, tai_moment=moment)
+    e2 = eng.emit(event_type=PROBE_EVENT_TYPE, agent_id="a", stream_id="s", memory_id="m", payload={}, tai_moment=moment)
     h1 = e1.physical_moment["hlc_timestamp"]
     h2 = e2.physical_moment["hlc_timestamp"]
     # Same TAI input: phys_ns equal, logical bumps by 1.
@@ -126,7 +132,7 @@ def test_hlc_steps_per_stream() -> None:
 def test_tier1b_machine_origin_reasons() -> None:
     eng = _engine()
     evt = eng.emit(
-        event_type="x",
+        event_type=PROBE_EVENT_TYPE,
         agent_id="a",
         stream_id="s",
         memory_id="m",
@@ -152,7 +158,7 @@ def test_tier1b_invalid_reason_rejected() -> None:
     eng = _engine()
     try:
         eng.emit(
-            event_type="x",
+            event_type=PROBE_EVENT_TYPE,
             agent_id="a",
             stream_id="s",
             memory_id="m",
@@ -168,7 +174,7 @@ def test_tier1b_invalid_reason_rejected() -> None:
 
 def test_tier2_utc_is_default_computed() -> None:
     eng = _engine()
-    evt = eng.emit(event_type="x", agent_id="a", stream_id="s", memory_id="m", payload={}, tai_moment=_moment())
+    evt = eng.emit(event_type=PROBE_EVENT_TYPE, agent_id="a", stream_id="s", memory_id="m", payload={}, tai_moment=_moment())
     utc_iso = evt.physical_moment["utc_iso"]
     assert utc_iso is not None, "utc_iso should be computed by default"
     # 2026 has no leap second pending; UTC and TAI differ by ~37 seconds.
@@ -177,7 +183,7 @@ def test_tier2_utc_is_default_computed() -> None:
 
 def test_tier2_null_reasons_enforced() -> None:
     eng = _engine()
-    evt = eng.emit(event_type="x", agent_id="a", stream_id="s", memory_id="m", payload={}, tai_moment=_moment())
+    evt = eng.emit(event_type=PROBE_EVENT_TYPE, agent_id="a", stream_id="s", memory_id="m", payload={}, tai_moment=_moment())
     nulls = evt.physical_moment["tier2_null_reasons"]
     # gps_time, tt_iso, sidereal_time, lunar_age_days, day_of_year, iso_week_date, leap_second_pending all default to source_absent
     for name in ("gps_time", "tt_iso", "sidereal_time", "lunar_age_days", "day_of_year", "iso_week_date", "leap_second_pending"):
@@ -188,8 +194,8 @@ def test_replay_determinism() -> None:
     a = _engine()
     b = _engine()
     moment = _moment()
-    e_a = a.emit(event_type="x", agent_id="a", stream_id="s", memory_id="m", payload={"k": 1}, tai_moment=moment)
-    e_b = b.emit(event_type="x", agent_id="a", stream_id="s", memory_id="m", payload={"k": 1}, tai_moment=moment)
+    e_a = a.emit(event_type=PROBE_EVENT_TYPE, agent_id="a", stream_id="s", memory_id="m", payload={"k": 1}, tai_moment=moment)
+    e_b = b.emit(event_type=PROBE_EVENT_TYPE, agent_id="a", stream_id="s", memory_id="m", payload={"k": 1}, tai_moment=moment)
     # Same engine state + same inputs -> identical physical_moment.
     assert e_a.physical_moment == e_b.physical_moment
 
@@ -213,17 +219,19 @@ def test_compute_chain_signals_requires_computed_at() -> None:
     raise AssertionError("compute_chain_signals accepted empty computed_at")
 
 
-def test_inmemory_engine_emits_v6() -> None:
+def test_inmemory_engine_emits_v7() -> None:
     events: list = []
     eng = InMemoryLineageEngine(events=events)
-    eng.emit(event_type="probe", agent_id="a", stream_id="s", memory_id="m", payload={})
+    eng.emit(event_type=PROBE_EVENT_TYPE, agent_id="a", stream_id="s", memory_id="m", payload={})
     assert events
     evt = events[0]
-    assert evt["schema_version"] == "6.0"
+    assert evt["schema_version"] == "7.0"
     assert "physical_moment" in evt
+    assert "event_time" not in evt, "v7 in-memory engine drops event_time"
     pm = evt["physical_moment"]
     for f in ("tai_iso", "solar_age_myr", "ecliptic_lon_deg", "sequence_in_stream", "hlc_timestamp", "time_context_id"):
         assert pm.get(f) is not None, f"InMemory: Tier 1a {f} missing"
+    assert pm["sequence_in_stream"] == 0, "v7 first event in stream is seq=0"
 
 
 def _check(name: str, fn: Callable[[], None]) -> tuple[str, bool, str]:
@@ -237,7 +245,7 @@ def _check(name: str, fn: Callable[[], None]) -> tuple[str, bool, str]:
 
 
 CHECKS: list[tuple[str, Callable[[], None]]] = [
-    ("schema_version_is_v6", test_schema_version_is_v6),
+    ("schema_version_is_v7", test_schema_version_is_v7),
     ("new_event_requires_physical_moment_tai_iso", test_new_event_requires_physical_moment_tai_iso),
     ("engine_emit_tier1a_fields", test_engine_emit_tier1a_fields),
     ("sequence_increments_per_stream", test_sequence_increments_per_stream),
@@ -248,7 +256,7 @@ CHECKS: list[tuple[str, Callable[[], None]]] = [
     ("tier2_null_reasons_enforced", test_tier2_null_reasons_enforced),
     ("replay_determinism", test_replay_determinism),
     ("compute_chain_signals_requires_computed_at", test_compute_chain_signals_requires_computed_at),
-    ("inmemory_engine_emits_v6", test_inmemory_engine_emits_v6),
+    ("inmemory_engine_emits_v7", test_inmemory_engine_emits_v7),
 ]
 
 

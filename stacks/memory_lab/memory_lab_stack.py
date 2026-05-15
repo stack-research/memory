@@ -23,7 +23,13 @@ class MemoryLabStack(Stack):
         if not table_bucket_name:
             raise ValueError("AWS_S3_TABLE_BUCKET_NAME must be set")
 
-        table_name = os.environ.get("AWS_S3_TABLE_NAME", "memory_events_v6")
+        # v7 EPISTEMIC_TRIANGLE §9.1: canonical table is
+        # `memory_events_v7`. v6 is orphaned from CDK on cutover per
+        # the lab's single-canonical-resource pattern; the v6
+        # physical table remains in S3 Tables as a historical
+        # container per the 2026-05-14T17:47:57.222 operator
+        # override (no migration; prior data disposable).
+        table_name = os.environ.get("AWS_S3_TABLE_NAME", "memory_events_v7")
         table_namespace = os.environ.get("AWS_S3_TABLE_NAMESPACE", "memory_lab")
 
         ingress_bucket_name = os.environ.get("AWS_S3_LINEAGE_INGRESS_BUCKET_NAME")
@@ -109,6 +115,15 @@ class MemoryLabStack(Stack):
                         s3tables.CfnTable.SchemaFieldProperty(name="pm_hlc_timestamp", type="string", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="pm_hlc_signature_eligible", type="boolean", required=True),
                         s3tables.CfnTable.SchemaFieldProperty(name="pm_time_context_id", type="string", required=True),
+                        # v7 EPISTEMIC_TRIANGLE §9.2 — denormalized
+                        # envelope hot columns. record_kind is
+                        # required; assertion_kind / subject fields
+                        # nullable per spec §3.2.
+                        s3tables.CfnTable.SchemaFieldProperty(name="record_kind", type="string", required=True),
+                        s3tables.CfnTable.SchemaFieldProperty(name="assertion_kind", type="string", required=False),
+                        s3tables.CfnTable.SchemaFieldProperty(name="subject_event_id", type="string", required=False),
+                        s3tables.CfnTable.SchemaFieldProperty(name="subject_record_kind", type="string", required=False),
+                        s3tables.CfnTable.SchemaFieldProperty(name="subject_assertion_kind", type="string", required=False),
                     ]
                 ),
                 table_properties={"format-version": "2"},

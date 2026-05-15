@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from src.config import load_config
 from src.embeddings import BedrockEmbeddings
 from src.explicit_memory.eligibility import score_candidate
-from src.lineage_engine import LineageEngine
+from src.experiments.engine_helper import make_experiment_engine
 from src.explicit_memory.recall import RecallEngine
 from src.storage import LineageStorage
 from src.vectors import RecallVectors
@@ -48,7 +48,7 @@ def run() -> dict:
     storage = LineageStorage(cfg)
     vectors = RecallVectors(cfg)
     embedder = BedrockEmbeddings(cfg)
-    lineage = LineageEngine(storage)
+    lineage = make_experiment_engine(storage)
     recall = RecallEngine(vectors=vectors, embedder=embedder, lineage=lineage, policy=cfg.retrieval_policy)
 
     agent_id = "lab-agent-1"

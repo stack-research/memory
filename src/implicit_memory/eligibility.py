@@ -3,10 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
+from typing import Any
+
 from src.explicit_memory.eligibility import (
     UncertaintyTriple,
+    V7_FALLBACK_MULTIPLIER_DEFAULT,
     evaluate_uncertainty_gate,
-    score_candidate,
     score_triple,
 )
 from src.implicit_memory.reasons import ImplicitReason
@@ -58,6 +60,16 @@ def eligibility_gate(
     recall_process_threshold: float = 0.3,
     provenance_chain_threshold: float = 0.3,
     safety_floor: float = 0.1,
+    # v7 EPISTEMIC_TRIANGLE §11 — optional axis signals consumed by
+    # score_triple's fallback policy. When None, legacy compute path
+    # applies (no fallback adjustment, no `axis_fallback_used`
+    # markers). v7 emit paths should source these from
+    # `compute_claim_signals` / `compute_recall_signals` /
+    # `compute_chain_signals` (the latter via normalize adapter).
+    claim_signals: Any | None = None,
+    recall_signals: Any | None = None,
+    provenance_signals: Any | None = None,
+    fallback_multiplier: float = V7_FALLBACK_MULTIPLIER_DEFAULT,
 ) -> EligibilityDecision:
     triple = score_triple(
         relevance=relevance,
@@ -69,19 +81,20 @@ def eligibility_gate(
         parent_chain_depth=parent_chain_depth,
         source_diversity=source_diversity,
         age_of_original_source=age_of_original_source,
+        claim_signals=claim_signals,
+        recall_signals=recall_signals,
+        provenance_signals=provenance_signals,
+        fallback_multiplier=fallback_multiplier,
     )
     combined_score = triple.combined()
-    legacy_score = score_candidate(
-        relevance=relevance,
-        trust=trust,
-        recency=recency,
-        reinforcement=reinforcement,
-        consistency=consistency,
-        safety=safety,
-    )
+
+    # v7 §11.1 + §16: `score_candidate` is offline-only.
+    # eligibility_gate is an emit-bearing path, so the gate score
+    # is the combined triple — not the scalar product.
+    gate_score = combined_score
 
     ok, mode = evaluate_uncertainty_gate(
-        legacy_score=legacy_score,
+        legacy_score=gate_score,
         triple=triple,
         safety=safety,
         gate_mode=gate_mode,
@@ -95,7 +108,7 @@ def eligibility_gate(
 
     decision = EligibilityDecision(
         allow_influence=ok,
-        score=legacy_score,
+        score=gate_score,
         combined_score=combined_score,
         dominant_axis=triple.dominant_axis(),
         uncertainty_triple=triple,

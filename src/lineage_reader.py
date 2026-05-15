@@ -30,11 +30,15 @@ class _AthenaLineageReaderBase:
         self.athena = make_session(cfg).client("athena")
 
     def query_events(self, *, stream_id: str) -> list[dict[str, Any]]:
+        # v7 EPISTEMIC_TRIANGLE §8.1 single-stream canonical order:
+        # (pm_tai_iso, pm_sequence_in_stream, event_id). Returned
+        # rows include `event_time` keyed off pm_tai_iso so legacy
+        # callers continue to work.
         sql = (
-            "SELECT memory_id, event_type, payload, event_time "
+            "SELECT memory_id, event_type, payload, pm_tai_iso "
             f"FROM {self.table} "
             f"WHERE stream_id = '{stream_id}' "
-            "ORDER BY event_time"
+            "ORDER BY pm_tai_iso, pm_sequence_in_stream, event_id"
         )
         start = self.athena.start_query_execution(
             QueryString=sql,
@@ -56,12 +60,16 @@ class _AthenaLineageReaderBase:
                 if data[0].get("VarCharValue") == "memory_id":
                     continue
                 payload_raw = data[2].get("VarCharValue", "{}")
+                pm_tai_iso = data[3].get("VarCharValue", "")
                 rows.append(
                     {
                         "memory_id": data[0].get("VarCharValue", ""),
                         "event_type": data[1].get("VarCharValue", ""),
                         "payload": json.loads(payload_raw) if payload_raw else {},
-                        "event_time": data[3].get("VarCharValue", ""),
+                        "pm_tai_iso": pm_tai_iso,
+                        # event_time is a v6 alias kept for legacy
+                        # callers; v7 anchor is pm_tai_iso.
+                        "event_time": pm_tai_iso,
                     }
                 )
         return rows
@@ -73,14 +81,21 @@ class _AthenaLineageReaderBase:
         memory_id: str,
         as_of_time: str | None = None,
     ) -> list[dict[str, Any]]:
-        where_time = f"AND event_time <= TIMESTAMP '{as_of_time}'" if as_of_time else ""
+        # v7 EPISTEMIC_TRIANGLE §8.1: anchor on pm_tai_iso; per-stream
+        # ordering uses (pm_tai_iso, pm_sequence_in_stream, event_id).
+        # pm_tai_iso is a STRING column (TAI ISO is lexicographically
+        # ordered for the supported precision), so compare strings —
+        # casting to TIMESTAMP would mismatch and Athena would error.
+        where_time = (
+            f"AND pm_tai_iso <= '{as_of_time}'" if as_of_time else ""
+        )
         sql = (
-            "SELECT event_id, parent_event_id, source_class, event_time "
+            "SELECT event_id, parent_event_id, source_class, pm_tai_iso, pm_sequence_in_stream "
             f"FROM {self.table} "
             f"WHERE stream_id = '{stream_id}' "
             f"AND memory_id = '{memory_id}' "
             f"{where_time} "
-            "ORDER BY event_time, event_id"
+            "ORDER BY pm_tai_iso, pm_sequence_in_stream, event_id"
         )
         start = self.athena.start_query_execution(
             QueryString=sql,
@@ -97,16 +112,26 @@ class _AthenaLineageReaderBase:
         for page in paginator.paginate(QueryExecutionId=qid):
             for row in page["ResultSet"]["Rows"]:
                 data = row.get("Data", [])
-                if len(data) < 4:
+                if len(data) < 5:
                     continue
                 if data[0].get("VarCharValue") == "event_id":
                     continue
+                pm_tai_iso = data[3].get("VarCharValue", "")
+                pm_seq_raw = data[4].get("VarCharValue", "")
+                try:
+                    pm_seq = int(pm_seq_raw) if pm_seq_raw else None
+                except (TypeError, ValueError):
+                    pm_seq = None
                 rows.append(
                     {
                         "event_id": data[0].get("VarCharValue", ""),
                         "parent_event_id": data[1].get("VarCharValue") or None,
                         "source_class": data[2].get("VarCharValue") or "unknown",
-                        "event_time": data[3].get("VarCharValue", ""),
+                        "pm_tai_iso": pm_tai_iso,
+                        "pm_sequence_in_stream": pm_seq,
+                        # event_time alias for v6 callers; v7 anchor
+                        # is pm_tai_iso.
+                        "event_time": pm_tai_iso,
                     }
                 )
         return rows

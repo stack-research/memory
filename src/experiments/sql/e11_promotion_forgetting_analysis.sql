@@ -3,7 +3,7 @@
 
 -- 1) Promotion gate decisions
 SELECT
-  event_time,
+  pm_tai_iso,
   json_extract_scalar(payload, '$.cluster_id') AS cluster_id,
   CAST(json_extract_scalar(payload, '$.access_count') AS INTEGER) AS access_count,
   CAST(json_extract_scalar(payload, '$.context_variance') AS DOUBLE) AS context_variance,
@@ -13,7 +13,7 @@ FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e11'
   AND event_type = 'snapshotted'
   AND json_extract_scalar(payload, '$.snapshot_type') = 'promotion_gate'
-ORDER BY event_time;
+ORDER BY pm_tai_iso;
 
 -- 2) Promotion + derived linkage coverage
 SELECT
@@ -24,7 +24,7 @@ WHERE stream_id = 'exp-e11';
 
 -- 3) Final coupling summary
 SELECT
-  event_time,
+  pm_tai_iso,
   CAST(json_extract_scalar(payload, '$.promotion_precision') AS DOUBLE) AS promotion_precision,
   CAST(json_extract_scalar(payload, '$.episodic_drop_ratio') AS DOUBLE) AS episodic_drop_ratio,
   CAST(json_extract_scalar(payload, '$.semantic_gain') AS DOUBLE) AS semantic_gain,
@@ -34,5 +34,5 @@ WHERE stream_id = 'exp-e11'
   AND event_type = 'snapshotted'
   AND json_extract_scalar(payload, '$.snapshot_type') = 'promotion_forgetting_coupling'
   AND json_extract_scalar(payload, '$.snapshot_stage') = 'final'
-ORDER BY event_time DESC
+ORDER BY pm_tai_iso DESC
 LIMIT 20;

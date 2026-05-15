@@ -3,7 +3,7 @@
 
 -- 1) Scenario snapshots and winner agreement
 SELECT
-  event_time,
+  pm_tai_iso,
   json_extract_scalar(payload, '$.scenario') AS scenario,
   json_extract_scalar(payload, '$.axis') AS axis,
   json_extract_scalar(payload, '$.expected_winner') AS expected_winner,
@@ -16,11 +16,11 @@ WHERE stream_id = 'exp-e9'
   AND event_type = 'snapshotted'
   AND json_extract_scalar(payload, '$.snapshot_type') = 'eligibility_contradiction_pressure'
   AND json_extract_scalar(payload, '$.snapshot_stage') = 'per_scenario'
-ORDER BY event_time;
+ORDER BY pm_tai_iso;
 
 -- 2) Final agreement summary
 SELECT
-  event_time,
+  pm_tai_iso,
   CAST(json_extract_scalar(payload, '$.agreement_rate') AS DOUBLE) AS agreement_rate,
   CAST(json_extract_scalar(payload, '$.scenario_count') AS INTEGER) AS scenario_count,
   CAST(json_extract_scalar(payload, '$.pass') AS BOOLEAN) AS pass
@@ -29,7 +29,7 @@ WHERE stream_id = 'exp-e9'
   AND event_type = 'snapshotted'
   AND json_extract_scalar(payload, '$.snapshot_type') = 'eligibility_contradiction_pressure'
   AND json_extract_scalar(payload, '$.snapshot_stage') = 'final'
-ORDER BY event_time DESC
+ORDER BY pm_tai_iso DESC
 LIMIT 20;
 
 -- 3) Rejection reason taxonomy in E9

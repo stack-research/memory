@@ -359,14 +359,15 @@ def hook_10_genesis_well_formedness() -> tuple[str, bool, dict]:
 
 
 def hook_11_sequence_cutover() -> tuple[str, bool, dict]:
-    """sequence_in_stream increments deterministically per stream.
+    """sequence_in_stream starts at 0 on every fresh stream and
+    increments monotonically.
 
-    Known v1.2 deviation: the spec says `canonical_table_genesis` carries
-    seq=0, but the current implementation emits time_context_declared
-    first on the same stream (seq=1), so genesis lands at seq=2 in the
-    bootstrap batch. Subsequent emits on a fresh stream cleanly start at
-    seq=1 (engine uses pre-increment). This is the candidate for a v1.3
-    spec amendment or a cutover_v6 refactor to a meta-stream.
+    The v1.2 deviation (genesis-at-seq=2 in the bootstrap batch) is
+    CLOSED in v7 by EPISTEMIC_TRIANGLE §10: `StreamState.sequence`
+    initializes to -1 so the pre-increment in `LineageEngine.emit`
+    yields 0 on the first emit. The bootstrap batch lives on the
+    dedicated `__canonical_meta__` stream so application streams
+    cleanly satisfy `genesis = seq=0`.
     """
     eng = _engine_with_ctx()
     moment = physical_moment("2026-05-14T12:00:00.000", scale="tai")
@@ -381,13 +382,14 @@ def hook_11_sequence_cutover() -> tuple[str, bool, dict]:
             tai_moment=moment,
         )
         seqs.append(evt.physical_moment["sequence_in_stream"])
-    # Engine is pre-increment from 0 -> first emit is 1; sequence must be 1,2,3
-    monotonic = seqs == [1, 2, 3]
+    # v7 (EPISTEMIC_TRIANGLE §10): first emit on a fresh stream is
+    # seq=0; pre-increment then yields 1, 2.
+    monotonic = seqs == [0, 1, 2]
     return "sequence_in_stream_cutover", monotonic, {
         "observed_sequence": seqs,
-        "v1_2_known_deviation": (
-            "genesis emits at seq=2 in bootstrap batch instead of seq=0 per spec §10.1; "
-            "candidate for v1.3 amendment (genesis-on-meta-stream)"
+        "v1_2_deviation_closed_by": (
+            "EPISTEMIC_TRIANGLE v7 §10: StreamState.sequence init -1 + "
+            "__canonical_meta__ bootstrap stream"
         ),
     }
 

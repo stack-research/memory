@@ -3,7 +3,7 @@
 
 -- 1) Risk snapshots by cycle
 SELECT
-  event_time,
+  pm_tai_iso,
   CAST(json_extract_scalar(payload, '$.cycle') AS INTEGER) AS cycle,
   json_extract_scalar(payload, '$.scenario') AS scenario,
   CAST(json_extract_scalar(payload, '$.risk_score') AS DOUBLE) AS risk_score,
@@ -14,7 +14,7 @@ FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e12'
   AND event_type = 'snapshotted'
   AND json_extract_scalar(payload, '$.snapshot_type') = 'poison_risk'
-ORDER BY event_time;
+ORDER BY pm_tai_iso;
 
 -- 2) Quarantine label coverage
 SELECT
@@ -28,7 +28,7 @@ WHERE stream_id = 'exp-e12'
 
 -- 3) Final poison resilience summary
 SELECT
-  event_time,
+  pm_tai_iso,
   CAST(json_extract_scalar(payload, '$.scenario_count') AS INTEGER) AS scenario_count,
   CAST(json_extract_scalar(payload, '$.quarantined_count') AS INTEGER) AS quarantined_count,
   CAST(json_extract_scalar(payload, '$.promoted_count') AS INTEGER) AS promoted_count,
@@ -40,5 +40,5 @@ WHERE stream_id = 'exp-e12'
   AND event_type = 'snapshotted'
   AND json_extract_scalar(payload, '$.snapshot_type') = 'trusted_source_poison_resilience'
   AND json_extract_scalar(payload, '$.snapshot_stage') = 'final'
-ORDER BY event_time DESC
+ORDER BY pm_tai_iso DESC
 LIMIT 20;

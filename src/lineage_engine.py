@@ -5,6 +5,11 @@ from typing import Any
 
 from astropy.time import Time
 
+from .epistemic_triangle import (
+    AssertionKind,
+    RecordKind,
+    lookup_event_type,
+)
 from .heliotime import PhysicalMoment, physical_moment as compute_pm
 from .storage import LineageStorage
 from .timekeeping import HLC, BatchCommit
@@ -30,7 +35,11 @@ TIER2_NULL_REASON_ENUM: frozenset[str] = frozenset({
 
 @dataclass
 class StreamState:
-    sequence: int = 0
+    # Per EPISTEMIC_TRIANGLE spec §10: initial value -1 so emit's
+    # pre-increment produces sequence_in_stream=0 for the first
+    # event in every stream (including __canonical_meta__ and every
+    # application stream).
+    sequence: int = -1
     hlc: HLC = field(default_factory=HLC)
 
 
@@ -57,11 +66,17 @@ class LineageEngine:
         *,
         time_context_id: str,
         hlc_variant: str = HLC_VARIANT_DEFAULT,
+        default_tai_moment: PhysicalMoment | None = None,
     ) -> None:
         self.storage = storage
         self._time_context_id = time_context_id
         self._hlc_variant = hlc_variant
         self._streams: dict[str, StreamState] = {}
+        # Optional caller-supplied bootstrap moment used by emit()
+        # when no per-call tai_moment is passed. Never wall-clock —
+        # always explicit. Useful for experiments that emit many
+        # events from a single fixed bootstrap anchor.
+        self._default_tai_moment = default_tai_moment
 
     @property
     def time_context_id(self) -> str:
@@ -78,7 +93,7 @@ class LineageEngine:
         stream_id: str,
         memory_id: str,
         payload: dict[str, Any],
-        tai_moment: PhysicalMoment,
+        tai_moment: PhysicalMoment | None = None,
         actor_class: str = "system_worker",
         source_class: str = "internal_engine",
         parent_event_id: str | None = None,
@@ -89,6 +104,18 @@ class LineageEngine:
         tier2: dict[str, Any] | None = None,
         tier2_null_reasons: dict[str, str] | None = None,
         bootstrap_self_reference: bool = False,
+        # v7 EPISTEMIC_TRIANGLE envelope additions. record_kind and
+        # assertion_kind are auto-derived from the static mapping
+        # table when not supplied; callers may override (e.g.
+        # `stored` events whose assertion_kind is per-payload). If
+        # auto-derivation fails (unmapped event_type or per-payload
+        # row without explicit assertion_kind), validation will
+        # quarantine in Phase 3+ ingestion.
+        record_kind: str | None = None,
+        assertion_kind: str | None = None,
+        subject_event_id: str | None = None,
+        subject_record_kind: str | None = None,
+        subject_assertion_kind: str | None = None,
     ) -> MemoryEvent:
         """Emit a canonical v6 event with a fully-populated physical_moment block.
 
@@ -102,6 +129,13 @@ class LineageEngine:
         being declared.
         """
         # Tier 1a — engine-owned state, no caller input.
+        if tai_moment is None:
+            if self._default_tai_moment is None:
+                raise ValueError(
+                    "tai_moment is required on emit() unless the engine "
+                    "was constructed with default_tai_moment (no wall-clock fallback)"
+                )
+            tai_moment = self._default_tai_moment
         state = self.stream_state(stream_id)
         state.sequence += 1
         hlc_state = state.hlc.step(tai_moment.tai_iso)
@@ -137,6 +171,21 @@ class LineageEngine:
             **tier2_null_block,
         }
 
+        # v7 envelope: derive record_kind / assertion_kind from the
+        # mapping table when callers don't supply them. Per-payload
+        # rows (like `stored`) need explicit assertion_kind from
+        # callers; the validator catches missing values at ingest.
+        mapping = lookup_event_type(event_type)
+        if mapping is not None:
+            if record_kind is None:
+                record_kind = mapping.record_kind.value
+            if assertion_kind is None and not mapping.assertion_kind_per_payload:
+                assertion_kind = (
+                    mapping.assertion_kind.value
+                    if mapping.assertion_kind is not None
+                    else None
+                )
+
         event = new_event(
             event_type=event_type,
             agent_id=agent_id,
@@ -147,6 +196,11 @@ class LineageEngine:
             source_class=source_class,
             physical_moment=physical_moment_block,
             parent_event_id=parent_event_id,
+            record_kind=record_kind,
+            assertion_kind=assertion_kind,
+            subject_event_id=subject_event_id,
+            subject_record_kind=subject_record_kind,
+            subject_assertion_kind=subject_assertion_kind,
         )
 
         if self.storage is not None:

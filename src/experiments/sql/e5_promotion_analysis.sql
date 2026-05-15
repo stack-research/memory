@@ -3,7 +3,7 @@
 
 -- 1) Timeline for E5
 SELECT
-  event_time,
+  pm_tai_iso,
   event_type,
   memory_id,
   parent_event_id,
@@ -11,11 +11,11 @@ SELECT
   json_extract_scalar(payload, '$.claim') AS claim
 FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e5'
-ORDER BY event_time;
+ORDER BY pm_tai_iso;
 
 -- 2) Promotion gate decision snapshots
 SELECT
-  event_time,
+  pm_tai_iso,
   memory_id,
   CAST(json_extract_scalar(payload, '$.access_count') AS INTEGER) AS access_count,
   CAST(json_extract_scalar(payload, '$.context_variance') AS DOUBLE) AS context_variance,
@@ -23,11 +23,11 @@ SELECT
 FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e5'
   AND event_type = 'snapshotted'
-ORDER BY event_time;
+ORDER BY pm_tai_iso;
 
 -- 3) Promotion events with derived lineage
 SELECT
-  event_time,
+  pm_tai_iso,
   memory_id AS semantic_memory_id,
   json_extract_scalar(payload, '$.claim') AS semantic_claim,
   CAST(json_extract_scalar(payload, '$.access_count') AS INTEGER) AS access_count,
@@ -36,11 +36,11 @@ SELECT
 FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e5'
   AND event_type = 'promoted'
-ORDER BY event_time;
+ORDER BY pm_tai_iso;
 
 -- 4) Episodic linkage records created post-promotion
 SELECT
-  event_time,
+  pm_tai_iso,
   memory_id AS episodic_memory_id,
   json_extract_scalar(payload, '$.promotion_link') AS semantic_memory_id,
   json_extract_scalar(payload, '$.relation') AS relation,
@@ -50,4 +50,4 @@ FROM memory_lab.memory_events_v5
 WHERE stream_id = 'exp-e5'
   AND event_type = 'mutated'
   AND json_extract_scalar(payload, '$.relation') = 'derived_from'
-ORDER BY event_time;
+ORDER BY pm_tai_iso;
