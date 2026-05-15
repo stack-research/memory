@@ -68,6 +68,25 @@ make ingest
 
 See the [`Makefile`](Makefile) for the full list of targets.
 
+## Timekeeping kernel (`src/heliotime`, `src/timekeeping`)
+
+Most systems treat a UTC wall-clock string as "the time." This lab treats UTC as a civil convention layered on a more durable substrate: **TAI** (uninterrupted SI seconds, no leap seconds) for the physical mechanism, and **heliocentric ecliptic coordinates** (solar age in megayears plus Earth's heliocentric longitude in degrees) for an observer-independent coordinate frame. Together they give every lineage event a `physical_moment` block that is byte-identical on replay and meaningful well beyond civil calendar conventions — neither property holds for UTC.
+
+[`src/heliotime`](src/heliotime/) is the kernel: pure functions from an explicit input moment (`datetime`, ISO string, or `astropy.time.Time`) to a `PhysicalMoment` (`tai_iso`, `solar_age_myr`, `ecliptic_lon_deg`). The only wall-clock read in the whole repo is `heliotime.now()` — named that way so replay paths can never accidentally call it. `astropy` is the only dependency.
+
+[`src/timekeeping`](src/timekeeping/) layers the rest of the v7 envelope on top:
+
+- [`context.py`](src/timekeeping/context.py) — `TimeContext` and a deterministic `time_context_id` (SHA-256 of a canonical-JSON serialization of the content fields; idempotent re-declaration).
+- [`hlc.py`](src/timekeeping/hlc.py) — Kulkarni-2014 hybrid logical clock keyed off `physical_moment.tai_iso`. Replay-deterministic by construction.
+- [`batch.py`](src/timekeeping/batch.py) — `canonical_batch_committed` markers that resolve "same atomic batch" without relying on wall-clock proximity.
+- [`events.py`](src/timekeeping/events.py) — payload builders for `time_context_declared`, `canonical_table_genesis`, and `canonical_table_boundary`.
+
+### Why this is interesting outside this lab
+
+The kernel is intentionally self-contained. `heliotime` depends only on `astropy`; `timekeeping` depends on `heliotime` and the Python standard library. Neither imports from `src/lineage_engine`, `src/storage`, or anything AWS-shaped. The conceptual move — *do not let civil-calendar conventions or wall-clock reads leak into the data plane of a system whose correctness depends on replay determinism* — generalizes to log pipelines, event-sourced systems, distributed databases, simulation harnesses, and any append-only ledger.
+
+There is a credible **side-project / standalone Python package** here (working name: `heliotime`). The migration path is intentionally cheap: pull `src/heliotime/` and `src/timekeeping/` out as their own package, publish to PyPI, add the dependency to `pyproject.toml`, delete the in-tree copy. The spec lives in [`specs/TAI_TIMEKEEPING.md`](specs/TAI_TIMEKEEPING.md); the seed motivation is in [`notes/solar_time/`](notes/solar_time/).
+
 ## Where to read next
 
 - [`specs/AGENT_PRIMER.md`](specs/AGENT_PRIMER.md) — what this system is, in one file.
