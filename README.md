@@ -70,9 +70,9 @@ See the [`Makefile`](Makefile) for the full list of targets.
 
 ## Timekeeping kernel (`src/heliotime`, `src/timekeeping`)
 
-Most systems treat a UTC wall-clock string as "the time." This lab treats UTC as a civil convention layered on a more durable substrate: **TAI** (uninterrupted SI seconds, no leap seconds) for the physical mechanism, and **heliocentric ecliptic coordinates** (solar age in megayears plus Earth's heliocentric longitude in degrees) for an observer-independent coordinate frame. Together they give every lineage event a `physical_moment` block that is byte-identical on replay and meaningful well beyond civil calendar conventions — neither property holds for UTC.
+Lineage time in this lab has two coordinates. The mechanism is **TAI** — uninterrupted SI seconds, counted continuously, no leap-second discontinuities. The position is **heliocentric ecliptic**: solar age in megayears and Earth's heliocentric ecliptic longitude in degrees at the moment of capture. Every canonical event carries both in its `physical_moment` block. Replay regenerates the same bytes; the coordinate stays legible on any timescale a future replay will inhabit.
 
-[`src/heliotime`](src/heliotime/) is the kernel: pure functions from an explicit input moment (`datetime`, ISO string, or `astropy.time.Time`) to a `PhysicalMoment` (`tai_iso`, `solar_age_myr`, `ecliptic_lon_deg`). The only wall-clock read in the whole repo is `heliotime.now()` — named that way so replay paths can never accidentally call it. `astropy` is the only dependency.
+[`src/heliotime`](src/heliotime/) is the kernel. Pure functions take an explicit input moment (`datetime`, ISO string, or `astropy.time.Time`) and produce a `PhysicalMoment` (`tai_iso`, `solar_age_myr`, `ecliptic_lon_deg`). One function reads the wall clock — `heliotime.now()` — and it is named so replay paths cannot reach it by accident. `astropy` is the only dependency.
 
 [`src/timekeeping`](src/timekeeping/) layers the rest of the v7 envelope on top:
 
@@ -81,11 +81,11 @@ Most systems treat a UTC wall-clock string as "the time." This lab treats UTC as
 - [`batch.py`](src/timekeeping/batch.py) — `canonical_batch_committed` markers that resolve "same atomic batch" without relying on wall-clock proximity.
 - [`events.py`](src/timekeeping/events.py) — payload builders for `time_context_declared`, `canonical_table_genesis`, and `canonical_table_boundary`.
 
-### Why this is interesting outside this lab
+### Standalone package potential
 
-The kernel is intentionally self-contained. `heliotime` depends only on `astropy`; `timekeeping` depends on `heliotime` and the Python standard library. Neither imports from `src/lineage_engine`, `src/storage`, or anything AWS-shaped. The conceptual move — *do not let civil-calendar conventions or wall-clock reads leak into the data plane of a system whose correctness depends on replay determinism* — generalizes to log pipelines, event-sourced systems, distributed databases, simulation harnesses, and any append-only ledger.
+The kernel is self-contained by design. `heliotime` depends only on `astropy`; `timekeeping` depends on `heliotime` and the Python standard library. Neither imports from `src/lineage_engine`, `src/storage`, or any AWS surface. Any append-only system that needs replay-stable physical time and a coordinate that survives civil-calendar drift can adopt the same shape — event-sourced stores, distributed ledgers, simulation harnesses, log pipelines.
 
-There is a credible **side-project / standalone Python package** here (working name: `heliotime`). The migration path is intentionally cheap: pull `src/heliotime/` and `src/timekeeping/` out as their own package, publish to PyPI, add the dependency to `pyproject.toml`, delete the in-tree copy. The spec lives in [`specs/TAI_TIMEKEEPING.md`](specs/TAI_TIMEKEEPING.md); the seed motivation is in [`notes/solar_time/`](notes/solar_time/).
+A standalone Python package (working name: `heliotime`) is a natural next step, and the migration is cheap by construction: lift `src/heliotime/` and `src/timekeeping/`, publish to PyPI, add the dependency to `pyproject.toml`, delete the in-tree copy. The spec is [`specs/TAI_TIMEKEEPING.md`](specs/TAI_TIMEKEEPING.md); the seed is [`notes/solar_time/`](notes/solar_time/).
 
 ## Where to read next
 
