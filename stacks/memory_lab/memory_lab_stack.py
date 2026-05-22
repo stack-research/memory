@@ -3,6 +3,7 @@ import os
 from aws_cdk import CfnOutput, Duration, RemovalPolicy, Stack
 from aws_cdk import aws_athena as athena
 from aws_cdk import aws_events as events
+from aws_cdk import aws_events_targets as targets
 from aws_cdk import aws_glue as glue
 from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_s3tables as s3tables
@@ -172,6 +173,38 @@ class MemoryLabStack(Stack):
             dead_letter_queue=sqs.DeadLetterQueue(max_receive_count=5, queue=lab_dlq),
             visibility_timeout=Duration.seconds(60),
             removal_policy=RemovalPolicy.RETAIN,
+        )
+
+        # Control-plane cue routing — CONTROL_PLANE_INGEST Decision 2:
+        # cue events published to the lab bus are routed to the FIFO
+        # queue, where the ingestion consumer drains them.
+        #
+        # Producer envelope contract (the rule's match surface):
+        #   source      = "memory-lab.control-plane"
+        #   detail-type = "control-cue"
+        #   detail      = the Cue body (CONTROL_PLANE_INGEST Decision 1)
+        #
+        # The FIFO target needs a MessageGroupId. A single static group
+        # serializes all cues — ordering is preserved, which is correct.
+        # Per-(agent_id, stream_id) message groups (Decision 4, for
+        # cross-stream parallelism) cannot be set per-event by a basic
+        # rule target; that needs EventBridge Pipes and is a §10
+        # optimization, not a correctness requirement.
+        control_cue_rule = events.Rule(
+            self,
+            "ControlCueRoutingRule",
+            rule_name="memory-lab-control-cue-routing",
+            event_bus=lab_event_bus,
+            event_pattern=events.EventPattern(
+                source=["memory-lab.control-plane"],
+                detail_type=["control-cue"],
+            ),
+            targets=[
+                targets.SqsQueue(
+                    lab_fifo_queue,
+                    message_group_id="control-cue",
+                )
+            ],
         )
 
         # Create a research artifacts bucket.

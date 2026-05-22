@@ -10,6 +10,19 @@ from .epistemic_triangle import validate_event_v7
 from .types import EVENT_SCHEMA_VERSION, MemoryEvent
 
 
+class LineageValidationError(ValueError):
+    """Raised when an event fails canonical lineage validation.
+
+    Subclasses ValueError for backward compatibility — existing
+    `except ValueError` handlers still catch it. It marks a malformed
+    *event* (the producer's fault) as distinct from emitter, storage,
+    or config failures (system faults), which stay plain exceptions.
+    The cue ingestion consumer relies on this split to route a cue
+    defect to `control_cue_rejected` and a system fault to retry/DLQ
+    (CONTROL_PLANE_INGEST Decision 2).
+    """
+
+
 class LineageStorage:
     def __init__(self, cfg: AwsConfig) -> None:
         self.cfg = cfg
@@ -149,20 +162,20 @@ class LineageStorage:
         }
         missing = [name for name, value in required.items() if not value]
         if missing:
-            raise ValueError(f"Missing required event fields: {', '.join(missing)}")
+            raise LineageValidationError(f"Missing required event fields: {', '.join(missing)}")
 
         if event.schema_version != EVENT_SCHEMA_VERSION:
-            raise ValueError(
+            raise LineageValidationError(
                 f"Unsupported schema_version '{event.schema_version}', expected '{EVENT_SCHEMA_VERSION}'"
             )
 
         if not isinstance(event.payload, dict):
-            raise ValueError("Event payload must be a JSON object/dict")
+            raise LineageValidationError("Event payload must be a JSON object/dict")
 
         # v6 physical_moment validation — Tier 1a non-nullable per
         # TAI_TIMEKEEPING spec §5.1 (carried into v7 unchanged).
         if not isinstance(event.physical_moment, dict):
-            raise ValueError("Event physical_moment must be a JSON object/dict")
+            raise LineageValidationError("Event physical_moment must be a JSON object/dict")
         tier1a_required = (
             "tai_iso",
             "solar_age_myr",
@@ -173,13 +186,13 @@ class LineageStorage:
         )
         for field_name in tier1a_required:
             if event.physical_moment.get(field_name) is None:
-                raise ValueError(
+                raise LineageValidationError(
                     f"physical_moment.{field_name} is required (Tier 1a non-nullable)"
                 )
         try:
             datetime.fromisoformat(event.physical_moment["tai_iso"])
         except (ValueError, TypeError) as exc:
-            raise ValueError(
+            raise LineageValidationError(
                 f"Invalid physical_moment.tai_iso ISO format: {event.physical_moment.get('tai_iso')}"
             ) from exc
 
@@ -207,7 +220,7 @@ class LineageStorage:
         }
         v7_failure = validate_event_v7(event_view)
         if v7_failure is not None:
-            raise ValueError(
+            raise LineageValidationError(
                 f"v7 envelope validation failed [{v7_failure.reason}]: {v7_failure.detail}"
             )
 

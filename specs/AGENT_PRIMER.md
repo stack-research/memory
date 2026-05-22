@@ -90,7 +90,7 @@ flowchart LR
   Implicit --> Vectors
   Implicit --> ProcState
   Bus --> Fifo
-  Fifo -.unwired.-> Implicit
+  Fifo -->|cue_ingest| Implicit
   Canon --> Replay
 ```
 
@@ -104,7 +104,7 @@ Concrete names. No prose.
 - **Athena `lineage_events_raw`** — validatable intake over the ingress prefix.
 - **Athena `lineage_events_quarantine`** — invalid rows with a deterministic `reason`.
 - **Canonical INSERT** — `INSERT INTO $AWS_ATHENA_TARGET_TABLE_FQN` from raw rows that pass validation.
-- **EventBridge `memory-lab` bus + SQS `memory-lab.fifo` + DLQ** — control-plane cues. Defined in the stack. Not yet wired into the implicit loop.
+- **EventBridge `memory-lab` bus + SQS `memory-lab.fifo` + DLQ** — control-plane cues. Wired into the implicit loop per `specs/CONTROL_PLANE_INGEST.md`: `ControlCueRoutingRule` routes the bus to the queue, `src/implicit_memory/cue_ingest.py` captures cues, `run_cue_ingest.py` is the consumer command.
 - **S3 `procedure-state/`** — mutable cognitive state (procedure strength, trust, urgency streak). Kept separate from lineage on purpose.
 
 Defined in `stacks/memory_lab/memory_lab_stack.py`. Full inventory in `stacks/README.md`.
@@ -130,8 +130,9 @@ Concrete entry points an agent is likely to touch:
 - **Reason taxonomy** — `src/implicit_memory/reasons.py` (`ImplicitReason`)
 - **Policy mutation** — `src/implicit_memory/policy_mutation.py`
 - **Procedure lifecycle** — `src/implicit_memory/procedure_lifecycle.py`, `src/implicit_memory/procedure_state_store.py`
-- **Replay / determinism** — `src/implicit_memory/replay.py` (`rebuild_from_lineage`)
-- **Experiments** — `src/experiments/` (`e1..e12` explicit; `implicit/im_a..im_k` + `im_regression` implicit)
+- **Replay / determinism** — `src/implicit_memory/replay.py` (`rebuild_from_lineage`, `ReplayCueProvider`)
+- **Control-plane cue ingestion** — `src/implicit_memory/cue_ingest.py` (`CueIngestionConsumer`, capture-before-act) and `src/implicit_memory/run_cue_ingest.py` (the consumer command); implements `specs/CONTROL_PLANE_INGEST.md`
+- **Experiments** — `src/experiments/` (`e1..e12` explicit; `implicit/im_a..im_v` + `im_regression` implicit)
 
 ## 8) Required event envelope
 
@@ -232,11 +233,13 @@ Anything not in the Makefile uses the raw form:
 - Any experiment by name:
   `PYTHONPATH=. uv run --project stacks python -m src.run_experiment <name>`
 
-Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-u`, `im-aws`, `im-regression`.
+Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-v`, `im-aws`, `im-regression`.
 
 ## 14) Deep dives (open only when needed)
 
 - `specs/IMPLICIT_MEMORY_SPEC.md` — touching trigger, admission, eligibility, reflex, contamination, or policy mutation logic.
+- `specs/CONTROL_PLANE_INGEST.md` — touching control-plane cue ingestion: the EventBridge → SQS → consumer path, the cue schema, or capture-before-act.
+- `specs/EPISTEMIC_TRIANGLE.md` — touching `record_kind` / `assertion_kind`, the five-term taxonomy, decision-event subject classification, evidence links, or the v7 canonical schema.
 - `specs/THREE_AXIS_UNCERTAINTY.md` — touching uncertainty representation, eligibility scoring, provenance confidence, or axis-aware gating.
 - `specs/PROVENANCE_SIGNAL_WRITER.md` — touching provenance signal production, vector metadata, replay determinism for provenance, or provenance-aware gate inputs.
 - `specs/TAI_TIMEKEEPING.md` — touching event time, replay timestamps, canonical lineage schema versions, boundary UTC/Gregorian conversion, or time-context quarantine.
@@ -256,7 +259,7 @@ The system knows these are not yet done. They are candidates for the next plan, 
 
 - **Envelope `payload` is free-form.** `claim`, `evidence`, `belief`, `memory` are enforced by convention, not by schema. A future loop could quietly conflate them.
 - **Provenance signal production is specified but may be partially unimplemented in runtime paths.** See `specs/PROVENANCE_SIGNAL_WRITER.md`; verify chain-derived signals are produced and consumed before treating `confidence_in_provenance_chain` as fully evidence-backed.
-- **Static cue providers.** `StaticObservationProvider` and `StaticCueProvider` in `src/implicit_memory/run_loop.py` are stubs. The EventBridge bus and SQS FIFO queue exist in the stack but nothing pushes real signals through them.
+- **Control plane — wired, with residuals.** The EventBridge → SQS → consumer path is implemented per `specs/CONTROL_PLANE_INGEST.md`: `ControlCueRoutingRule`, `src/implicit_memory/cue_ingest.py`, and the `run_cue_ingest.py` consumer command. `StaticCueProvider` in `run_loop.py` is now a deterministic fixture, not a stub. Residual edges: per-`(agent,stream)` SQS `MessageGroupId` wants an EventBridge Pipe; the production compute form is a Lambda (the lab stops at the command); cue `payload` schema is still free-form (see the first bullet).
 - **TAI timekeeping is live; some surfaces still maturing.** Canonical lineage carries the `physical_moment` block (`tai_iso`, `solar_age_myr`, `ecliptic_lon_deg`, `sequence_in_stream`, `hlc_timestamp`, `time_context_id`); `src/heliotime/` produces TAI at capture and `src/timekeeping/` builds `physical_moment` and the HLC. Outstanding edges are tracked in `specs/TAI_TIMEKEEPING.md` §implementation-checklist (e.g. `time_context_declared` emission coverage, ephemeris-data pinning, full HLC determinism under multi-stream replay).
 
 When in doubt, prefer adding a lineage event over editing existing logic. Replay is the safety net.

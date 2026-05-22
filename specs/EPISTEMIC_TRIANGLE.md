@@ -121,6 +121,8 @@ The decision event itself remains `assertion_kind = null`. Subject classificatio
 | `policy_threshold_updated` | policy_event | null |
 | `policy_procedure_superseded` | policy_event | null |
 
+Control-plane ingest event types — `control_cue_ingested`, `control_cue_rejected`, `control_cue_duplicate_ignored`, `control_cue_dlq_recovered`, `control_cue_dlq_abandoned` — are declared in `specs/CONTROL_PLANE_INGEST.md` §7 and registered in `src/epistemic_triangle/mapping.py`. They reach the canonical mapping through the §3.5 extension discipline and are intentionally not duplicated into the table above: single source of truth, avoiding the doc drift the lab's conventions guard against.
+
 ### 3.5 Mapping extension discipline (new in v1.2)
 
 Closed mapping is safe; extension discipline keeps it from becoming friction. New event types enter the mapping table by **both**:

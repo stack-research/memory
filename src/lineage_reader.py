@@ -90,7 +90,7 @@ class _AthenaLineageReaderBase:
             f"AND pm_tai_iso <= '{as_of_time}'" if as_of_time else ""
         )
         sql = (
-            "SELECT event_id, parent_event_id, source_class, pm_tai_iso, pm_sequence_in_stream "
+            "SELECT event_id, parent_event_id, source_class, pm_tai_iso, pm_sequence_in_stream, event_type "
             f"FROM {self.table} "
             f"WHERE stream_id = '{stream_id}' "
             f"AND memory_id = '{memory_id}' "
@@ -112,7 +112,7 @@ class _AthenaLineageReaderBase:
         for page in paginator.paginate(QueryExecutionId=qid):
             for row in page["ResultSet"]["Rows"]:
                 data = row.get("Data", [])
-                if len(data) < 5:
+                if len(data) < 6:
                     continue
                 if data[0].get("VarCharValue") == "event_id":
                     continue
@@ -127,6 +127,7 @@ class _AthenaLineageReaderBase:
                         "event_id": data[0].get("VarCharValue", ""),
                         "parent_event_id": data[1].get("VarCharValue") or None,
                         "source_class": data[2].get("VarCharValue") or "unknown",
+                        "event_type": data[5].get("VarCharValue", ""),
                         "pm_tai_iso": pm_tai_iso,
                         "pm_sequence_in_stream": pm_seq,
                         # event_time alias for v6 callers; v7 anchor

@@ -81,11 +81,16 @@ CLEAN_RESET_PREDECESSOR_SENTINEL = "clean_reset_no_predecessor"
 V7_SCHEMA_VERSION = "7.0"
 
 
-def _build_time_context() -> tuple[Any, str, str | None]:
+def build_time_context() -> tuple[Any, str, str | None]:
     """Build the default v7 TimeContext.
 
     Tries to pin astropy to DE440; falls back deterministically if
     unavailable (recorded in `fallback_reason`).
+
+    Shared lab helper: the deterministic `time_context_id` it returns
+    is the same one the v7 cutover declared, so any component that
+    rebuilds the same `TimeContext` (e.g. the cue ingestion consumer)
+    emits events against the canonical table's active time context.
     """
     active_ephem, fallback_reason = try_set_ephemeris(DEFAULT_EPHEMERIS_ID)
     ephem_id_in_use = active_ephem or EPHEMERIS_ID_DEFAULT
@@ -116,7 +121,7 @@ def cutover(
     """Emit the v7 bootstrap batch on the `__canonical_meta__` stream
     and return a summary."""
 
-    ctx, ctx_id, fallback_reason = _build_time_context()
+    ctx, ctx_id, fallback_reason = build_time_context()
     bootstrap_moment = physical_moment("2026-05-15T00:00:00.000", scale="tai")
 
     engine = LineageEngine(storage=storage, time_context_id=ctx_id)

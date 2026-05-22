@@ -38,6 +38,7 @@ from src.experiments.implicit.im_r_provenance_signal_writer import run as run_im
 from src.experiments.implicit.im_s_provenance_writer_closeout import run as run_im_s
 from src.experiments.implicit.im_t_tai_timekeeping import run as run_im_t
 from src.experiments.implicit.im_u_epistemic_triangle import run as run_im_u
+from src.experiments.implicit.im_v_control_plane_ingest import run as run_im_v
 from src.experiments.implicit.im_regression import run as run_im_regression
 from src.storage import LineageStorage
 
@@ -77,6 +78,7 @@ EXPERIMENTS = {
     "im-s": run_im_s,
     "im-t": run_im_t,
     "im-u": run_im_u,
+    "im-v": run_im_v,
     "im-regression": run_im_regression,
 }
 

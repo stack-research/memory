@@ -88,6 +88,15 @@ _RAW: Mapping[str, tuple[RecordKind, AssertionKind | None, bool, bool]] = {
     # Test-only probes used by im_t falsification suite. Marked
     # lineage_meta so they don't pollute the epistemic axes.
     "probe": (RecordKind.LINEAGE_META, None, False, False),
+    # Control-plane ingest — CONTROL_PLANE_INGEST spec §7. Live cues
+    # captured into lineage before the implicit loop may act. A cue is
+    # a source assertion about what to notice, not direct ground
+    # truth — hence observation_event + claim, not reality_observation.
+    "control_cue_ingested": (RecordKind.OBSERVATION_EVENT, AssertionKind.CLAIM, False, False),
+    "control_cue_rejected": (RecordKind.DECISION_EVENT, None, False, False),
+    "control_cue_duplicate_ignored": (RecordKind.LINEAGE_META, None, False, False),
+    "control_cue_dlq_recovered": (RecordKind.LINEAGE_META, None, False, False),
+    "control_cue_dlq_abandoned": (RecordKind.LINEAGE_META, None, False, False),
 }
 
 

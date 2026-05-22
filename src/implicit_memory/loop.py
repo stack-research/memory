@@ -20,18 +20,23 @@ from src.implicit_memory.procedure_state_store import ProcedureStateStore
 from src.implicit_memory.reflex_mode import ReflexController
 from src.implicit_memory.reasons import ImplicitReason
 from src.implicit_memory.scheduler import ScheduledCue, due_cues, escalation_level, now_utc
+from src.implicit_memory.cue_ingest import Cue
 
 
 class ProvenanceResolver(Protocol):
     def resolve(self, *, memory_id: str, stream_id: str, as_of_time: str) -> dict[str, object]: ...
 
 
-class ObservationProvider(Protocol):
-    def pull(self, *, now: datetime) -> list[tuple[str, ObservationSignals]]: ...
+class CapturedCueProvider(Protocol):
+    """The loop's single input contract (CONTROL_PLANE_INGEST Decision 2).
 
+    Yields captured control-plane cues. A live provider drains
+    `control_cue_ingested` events from canonical lineage; a fixture
+    provider yields the same `Cue` shape directly. The loop cannot tell
+    them apart — one contract, two sources.
+    """
 
-class ScheduledCueProvider(Protocol):
-    def pull(self, *, now: datetime) -> list[ScheduledCue]: ...
+    def pull(self, *, now: datetime) -> list[Cue]: ...
 
 
 class LineageEmitter(Protocol):
@@ -437,8 +442,7 @@ class ImplicitControllerLoop:
         *,
         cfg: AwsConfig,
         lineage: LineageEmitter,
-        observation_provider: ObservationProvider,
-        cue_provider: ScheduledCueProvider,
+        cue_provider: CapturedCueProvider,
         agent_id: str,
         stream_id: str,
         procedure_state_store: ProcedureStateStore | None = None,
@@ -447,7 +451,6 @@ class ImplicitControllerLoop:
     ) -> None:
         self.cfg = cfg
         self.lineage = lineage
-        self.observation_provider = observation_provider
         self.cue_provider = cue_provider
         self.agent_id = agent_id
         self.stream_id = stream_id
@@ -495,6 +498,60 @@ class ImplicitControllerLoop:
             "as_of_time": payload.get("as_of_time", as_of_time),
         }
 
+    def _cue_to_observation(self, cue: Cue) -> tuple[str, ObservationSignals]:
+        """Adapt a captured cue to the (memory_id, ObservationSignals)
+        pair the observation path consumes.
+
+        The cue payload is deserialized into the explicit
+        `ObservationSignals` dataclass — one defined shape, read
+        uniformly for every non-scheduled cue. This is not the
+        per-cue_type ad hoc payload-peeking CONTROL_PLANE_INGEST
+        Decision 2 forbids: the loop dispatches on `cue_type`, and the
+        signal shape is a named contract, not a schema hidden in code.
+
+        Honest gap: attack detection and trigger evaluation still read
+        these signals before admission, so the payload is not strictly
+        opaque-until-admission as Decision 2 states. Moving that
+        interpretation past admission is a separate change, beyond
+        Phase 4's input unification.
+        """
+        p = cue.payload if isinstance(cue.payload, dict) else {}
+        memory_id = str(p.get("memory_id") or cue.cue_id)
+        signals = ObservationSignals(
+            prediction_error=float(p.get("prediction_error", 0.0)),
+            goal_impact=float(p.get("goal_impact", 0.0)),
+            risk_signal=float(p.get("risk_signal", 0.0)),
+            repetition_signal=float(p.get("repetition_signal", 0.0)),
+            contradiction_pressure=float(p.get("contradiction_pressure", 0.0)),
+            explicit_directive=bool(p.get("explicit_directive", False)),
+            urgency=float(p.get("urgency", 0.0)),
+            sensory_confidence=float(p.get("sensory_confidence", 0.0)),
+            sensor_values=[float(v) for v in (p.get("sensor_values") or [])],
+        )
+        return memory_id, signals
+
+    def _cue_to_scheduled(self, cue: Cue) -> ScheduledCue:
+        """Adapt a `scheduled_cue` captured cue to a `ScheduledCue`.
+
+        `due_at` rides the payload as an ISO string (JSON carries no
+        datetime); fixtures always supply it.
+        """
+        p = cue.payload if isinstance(cue.payload, dict) else {}
+        due_raw = p.get("due_at")
+        due_at = (
+            datetime.fromisoformat(due_raw)
+            if isinstance(due_raw, str) and due_raw
+            else now_utc()
+        )
+        return ScheduledCue(
+            cue_id=cue.cue_id,
+            memory_id=str(p.get("memory_id") or cue.cue_id),
+            due_at=due_at,
+            urgency=float(p.get("urgency", 0.0)),
+            risk_signal=float(p.get("risk_signal", 0.0)),
+            acknowledged=bool(p.get("acknowledged", False)),
+        )
+
     def tick(self, *, now: datetime | None = None) -> dict:
         t = now or now_utc()
         stats = LoopStats()
@@ -508,7 +565,16 @@ class ImplicitControllerLoop:
         if procedure_state is None:
             procedure_state = ProcedureState(procedure_id=self.procedure_id, strength=1.0, trust=1.0)
 
-        observations = self.observation_provider.pull(now=t)
+        # CONTROL_PLANE_INGEST Decision 2: one input contract. Pull
+        # captured cues once, then dispatch by cue_type — scheduled_cue
+        # to the scheduled path, everything else to the observation
+        # path. The handler bodies below are unchanged.
+        captured_cues = self.cue_provider.pull(now=t)
+        observations = [
+            self._cue_to_observation(c)
+            for c in captured_cues
+            if c.cue_type != "scheduled_cue"
+        ]
         observation_counts: dict[str, int] = defaultdict(int)
         for memory_id, signals in observations:
             observation_counts[memory_id] += 1
@@ -730,7 +796,11 @@ class ImplicitControllerLoop:
                     },
                 )
 
-        cues = self.cue_provider.pull(now=t)
+        cues = [
+            self._cue_to_scheduled(c)
+            for c in captured_cues
+            if c.cue_type == "scheduled_cue"
+        ]
         due = due_cues(now=t, cues=cues)
         stats.cues_due = len(due)
 

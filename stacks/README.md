@@ -68,6 +68,12 @@ This directory contains AWS CDK infrastructure for the memory lab backend.
   - DLQ configured (`max_receive_count=5`)
   - `RemovalPolicy.RETAIN`
 
+- **EventBridge → SQS routing rule** (`aws_events.Rule` + `aws_events_targets.SqsQueue`)
+  - `rule_name`: `memory-lab-control-cue-routing`
+  - On `LabEventBus`; event pattern matches `source = ["memory-lab.control-plane"]`, `detail-type = ["control-cue"]`
+  - Target: the FIFO primary queue, static `MessageGroupId` `control-cue`
+  - Routes control-plane cue events from the bus to the queue (`specs/CONTROL_PLANE_INGEST.md`)
+
 ### 5) Athena + Glue query plane
 
 - **Athena results bucket** (`aws_s3.Bucket`)
@@ -138,7 +144,7 @@ flowchart LR
       EB[EventBridge\nLabEventBus]
       Q[SQS FIFO\nLabFifoQueue]
       DLQ[SQS FIFO DLQ\nLabFifoDlq]
-      EB --> Q
+      EB -->|ControlCueRoutingRule| Q
       Q -. failed after retries .-> DLQ
     end
 
