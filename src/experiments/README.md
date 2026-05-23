@@ -203,15 +203,16 @@ Current behavior (scaffold):
 - Emits deterministic quarantined or promoted outcomes per cycle.
 - Emits final poison-promotion and label-coverage summary.
 
-### Implicit Memory Regression Harness (Suites A-O)
+### Implicit Memory Suites (A-W)
 
 Directory: `implicit/`
 
 Purpose:
-- Execute first-wave implicit-memory suites from `specs/IMPLICIT_MEMORY_TEST_SPEC.md`.
-- Validate trigger behavior, contamination handling, reflex boundaries, contradiction persistence, and replay determinism.
+- Execute the implicit-memory suites from `specs/IMPLICIT_MEMORY_TEST_SPEC.md` and the falsification suites for promoted specs (`TAI_TIMEKEEPING`, `EPISTEMIC_TRIANGLE`, `CONTROL_PLANE_INGEST`, `RUNTIME_CALIBRATION`, `CONSEQUENCE_LOOPS`).
+- Validate trigger behavior, contamination handling, reflex boundaries, contradiction persistence, replay determinism, axis-aware gating, provenance signal writing, TAI timekeeping, control-plane ingestion, and consequence-loop bindings.
 
-Current behavior:
+Suites in the directory:
+
 - `im_a_unprompted_trigger.py` (Suite A)
 - `im_b_session_reset_timegap.py` (Suite B)
 - `im_c_trusted_false_contamination.py` (Suite C)
@@ -228,8 +229,16 @@ Current behavior:
 - `im_n_recall_degradation.py` (Suite N recall-process degradation stress)
 - `im_o_claim_implausibility.py` (Suite O claim implausibility stress)
 - `im_p_default_mode_decision.py` (Suite P default-mode decision from L/M/N/O evidence)
+- `im_q_traffic_evidence.py` (Suite Q traffic-backed evidence for gate-mode default)
+- `im_r_provenance_signal_writer.py` (Suite R `PROVENANCE_SIGNAL_WRITER` falsification suite)
+- `im_s_provenance_writer_closeout.py` (Suite S closeout pass for the provenance-writer arc; not gated in regression)
+- `im_t_tai_timekeeping.py` (Suite T `TAI_TIMEKEEPING` falsification suite)
+- `im_u_epistemic_triangle.py` (Suite U `EPISTEMIC_TRIANGLE` falsification suite)
+- `im_v_control_plane_ingest.py` (Suite V `CONTROL_PLANE_INGEST` falsification suite)
+- `im_w_runtime_calibration.py` (Suite W live-wire runtime calibration; implements `specs/RUNTIME_CALIBRATION.md` and carries the first two consequence-loop bindings per `specs/CONSEQUENCE_LOOPS.md` §9; opt-in via `IMPLICIT_CALIBRATION_RUN=1`)
+- `im_w_consequence_verify.py` (focused verifier for the two `im_w` bindings — 12 cases covering same-profile derivation, cross-profile non-transfer, explicit-block laundering, and forbidden-pattern matching)
 - `im_aws_lineage_replay.py` (AWS lineage + canonical replay smoke)
-- `im_regression.py` aggregates pass/fail for A-K and enforces flood fail gates.
+- `im_regression.py` aggregates pass/fail for A–R, T, U, V, and (when `IMPLICIT_CALIBRATION_RUN=1`) W; enforces flood fail gates. Suite S (closeout) is not gated.
 
 ### E9-E12 Regression Harness
 

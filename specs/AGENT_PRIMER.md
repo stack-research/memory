@@ -132,7 +132,8 @@ Concrete entry points an agent is likely to touch:
 - **Procedure lifecycle** — `src/implicit_memory/procedure_lifecycle.py`, `src/implicit_memory/procedure_state_store.py`
 - **Replay / determinism** — `src/implicit_memory/replay.py` (`rebuild_from_lineage`, `ReplayCueProvider`)
 - **Control-plane cue ingestion** — `src/implicit_memory/cue_ingest.py` (`CueIngestionConsumer`, capture-before-act) and `src/implicit_memory/run_cue_ingest.py` (the consumer command); implements `specs/CONTROL_PLANE_INGEST.md`
-- **Experiments** — `src/experiments/` (`e1..e12` explicit; `implicit/im_a..im_v` + `im_regression` implicit)
+- **Runtime calibration + consequence-loop bindings** — `src/experiments/implicit/im_w_runtime_calibration.py` produces the live-wire calibration artifact and carries the first two summary-to-summary consequence bindings (`adversarial_matrix_coverage_required`, `dominant_axis_distribution_diversity_required`); `src/experiments/implicit/im_w_consequence_verify.py` is the focused verifier. Implements `specs/RUNTIME_CALIBRATION.md` and `specs/CONSEQUENCE_LOOPS.md` §9 first-implemented slice.
+- **Experiments** — `src/experiments/` (`e1..e12` explicit; `implicit/im_a..im_w` + `im_regression` implicit)
 
 ## 8) Required event envelope
 
@@ -225,6 +226,8 @@ From repo root, with AWS profile `stack-research`. Prefer Makefile targets when 
   `make implicit-regression`
 - Single explicit experiment (`e1..e12`):
   `make exp-e1` (replace number as needed)
+- Runtime calibration (live AWS wire; opt-in via `IMPLICIT_CALIBRATION_RUN=1`):
+  `make im-w` (representative `full` profile) or `make im-w-loop-probe` (smaller, faster consequence-loop instrument)
 
 Anything not in the Makefile uses the raw form:
 
@@ -233,7 +236,7 @@ Anything not in the Makefile uses the raw form:
 - Any experiment by name:
   `PYTHONPATH=. uv run --project stacks python -m src.run_experiment <name>`
 
-Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-v`, `im-aws`, `im-regression`.
+Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-w`, `im-aws`, `im-regression`.
 
 ## 14) Deep dives (open only when needed)
 
@@ -243,6 +246,8 @@ Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-v`, `im-aws`, `im-r
 - `specs/THREE_AXIS_UNCERTAINTY.md` — touching uncertainty representation, eligibility scoring, provenance confidence, or axis-aware gating.
 - `specs/PROVENANCE_SIGNAL_WRITER.md` — touching provenance signal production, vector metadata, replay determinism for provenance, or provenance-aware gate inputs.
 - `specs/TAI_TIMEKEEPING.md` — touching event time, replay timestamps, canonical lineage schema versions, boundary UTC/Gregorian conversion, or time-context quarantine.
+- `specs/RUNTIME_CALIBRATION.md` — touching the `im_w` live-wire calibration run, its workload profiles (`full`, `loop_probe`), Run Summary shape, fixture disclosures, or the calibration pass/fail criteria.
+- `specs/CONSEQUENCE_LOOPS.md` — touching outcome feedback, failure memory, attention priors, schema memory, absence memory, counterfactual audit, or run-to-run learning from consequences. §9 carries the first-implemented slice (two summary-to-summary bindings on `im_w`); the rest of the spec is still concept-shape.
 - `specs/IMPLICIT_MEMORY_TEST_SPEC.md` — writing or changing an `im_*` experiment.
 - `specs/ENGINEERING_SPEC.md` — touching ingestion or Athena.
 - `specs/EXPERIMENTS.md` — adding a new experiment file.
@@ -257,9 +262,10 @@ Names accepted by `src.run_experiment`: `e1..e12`, `im-a..im-v`, `im-aws`, `im-r
 
 The system knows these are not yet done. They are candidates for the next plan, not silent defects.
 
-- **Envelope `payload` is free-form.** `claim`, `evidence`, `belief`, `memory` are enforced by convention, not by schema. A future loop could quietly conflate them.
-- **Provenance signal production is specified but may be partially unimplemented in runtime paths.** See `specs/PROVENANCE_SIGNAL_WRITER.md`; verify chain-derived signals are produced and consumed before treating `confidence_in_provenance_chain` as fully evidence-backed.
-- **Control plane — wired, with residuals.** The EventBridge → SQS → consumer path is implemented per `specs/CONTROL_PLANE_INGEST.md`: `ControlCueRoutingRule`, `src/implicit_memory/cue_ingest.py`, and the `run_cue_ingest.py` consumer command. `StaticCueProvider` in `run_loop.py` is now a deterministic fixture, not a stub. Residual edges: per-`(agent,stream)` SQS `MessageGroupId` wants an EventBridge Pipe; the production compute form is a Lambda (the lab stops at the command); cue `payload` schema is still free-form (see the first bullet).
+- **Envelope `payload` is free-form.** `claim`, `evidence`, `belief`, `memory` are enforced by convention, not by schema. A future loop could quietly conflate them. Cue `payload` shape is also free-form — see the control-plane edge below.
+- **Provenance signal production is specified, but the `im_w` calibration runs it under a fixture.** `src/explicit_memory/provenance.py` and the `provenance_resolver.py` shape match `specs/PROVENANCE_SIGNAL_WRITER.md`, but `im_w` uses `StaticProvenanceResolver`, which pins provenance `signal_source` to `computed` and predetermines the provenance axis. Disclosed in the Run Summary `fixture_disclosures` block; flagged on `2026-05-22-review-runtime-calibration-implementation`. Treat `confidence_in_provenance_chain` numbers from `im_w` as fixture-influenced until the resolver runs over real lineage in the loop path.
+- **Control plane — wired, with residuals.** The EventBridge → SQS → consumer path is implemented per `specs/CONTROL_PLANE_INGEST.md` and is now being used by the consequence-loop machinery (see next bullet). Residual edges: per-`(agent,stream)` SQS `MessageGroupId` wants an EventBridge Pipe; the production compute form is a Lambda (the lab stops at the command); cue `payload` schema is still free-form; `CalibrationSeenCueStore` in `im_w` uses a run-local front cache because canonical lineage lags S3 ingress within a single fast run, so the `im_w` duplicate probe measures consumer idempotency rather than canonical-lineage-backed dedup (disclosed in the Run Summary).
 - **TAI timekeeping is live; some surfaces still maturing.** Canonical lineage carries the `physical_moment` block (`tai_iso`, `solar_age_myr`, `ecliptic_lon_deg`, `sequence_in_stream`, `hlc_timestamp`, `time_context_id`); `src/heliotime/` produces TAI at capture and `src/timekeeping/` builds `physical_moment` and the HLC. Outstanding edges are tracked in `specs/TAI_TIMEKEEPING.md` §implementation-checklist (e.g. `time_context_declared` emission coverage, ephemeris-data pinning, full HLC determinism under multi-stream replay).
+- **Consequence loops — first autonomous chain live, with known limits.** Two summary-to-summary bindings on `im_w` (`adversarial_matrix_coverage_required`, `dominant_axis_distribution_diversity_required`) carry consequences across runs without operator intervention; a failed run's artifact shapes the next run's preflight or post-loop validation. `specs/CONSEQUENCE_LOOPS.md` §9 captures the implementation. What is *not* yet built: lineage-event-backed bindings (still summary-to-summary; invariant 12 not strictly held), a rehabilitation / retirement mechanism for forbidden patterns (failure chains are self-sustaining until a manual reset or explicit "addressed" marker), and a generic skeleton helper extracted from the two bindings.
 
 When in doubt, prefer adding a lineage event over editing existing logic. Replay is the safety net.

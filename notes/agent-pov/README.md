@@ -77,6 +77,7 @@ The original observation that motivated a proposal stays in place after promotio
 - Entries quote source documents verbatim where they overlap. Never paraphrase invariants.
 - Same discipline as `specs/AGENT_PRIMER.md`.
 - The `INDEX.md` file is the audit trail. Every new entry should add a row.
+- The `Summary` column in `INDEX.md` is one short line — present tense, what the entry concludes or proposes. It is a pointer to the file, not the file in miniature. Do not write a paragraph there; do not restate every section of the entry. If a reader needs the full argument they open the file. Older rows have drifted long; do not match their length.
 
 ## How a future agent should use this folder
 

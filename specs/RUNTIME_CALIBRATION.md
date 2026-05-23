@@ -213,3 +213,85 @@ This is not a failure. It is the canonical-lag finding the calibration surfaced.
 If `im_w` uses `StaticProvenanceResolver`, the Run Summary must mark provenance `signal_source` counts as fixture-supplied and predetermined. Claim and recall signal-source distributions remain measurements of the loop's signal-writer paths; provenance `computed` counts do not.
 
 This keeps Decision 3 honest: signal provenance on behavior-influencing decisions is only a load-bearing measurement when the axis source is not fixture-pinned.
+
+## 13. Addendum — first consequence-loop binding (2026-05-23)
+
+`specs/CONSEQUENCE_LOOPS.md` names the first small loop: one prior consequence binds one required check to one future path. For `im_w`, that path is cue generation.
+
+Implementation shape:
+
+- `im_w` loads a generation binding before `generate_cue_details`.
+- The first binding is `adversarial_matrix_coverage_required`.
+- The binding applies to `im_w.generate_cue_details`.
+- The binding effect is: fail generation if the adversarial cue-type matrix is absent or mismatched.
+- If `IMPLICIT_CALIBRATION_PRIOR_SUMMARY_URI` is set, the binding is derived from that prior Run Summary or its explicit `generation_binding` block.
+- If the prior Run Summary carries an adversarial matrix that differs from the expected matrix, that prior matrix becomes a forbidden pattern for the next run.
+- If no prior summary is configured, the same binding is still loaded from the current spec default and recorded in the Run Summary. The run must not proceed through generation with an unrecorded empty posture.
+- The Run Summary must include `consequence_binding_summary`, a compact machine-readable view of whether the binding was read, applied, and shaped by a prior run.
+- If a consequence-loop binding fails validation, `im_w` must write a failed Run Summary before raising. The command still exits non-zero, but the failed run remains available as a future prior. Artifact-write failure during failure handling must be printed to stderr and re-raised.
+
+This is not a general consequence-loop framework. It is the first narrow test of whether a run can carry one learned constraint into the next run's unavoidable generation path.
+
+## 14. Addendum — workload profiles (2026-05-23)
+
+The 500-cue workload is necessary for the original runtime calibration question, but too heavy for consequence-loop iteration. `im_w` therefore has workload profiles selected by `IMPLICIT_CALIBRATION_PROFILE`:
+
+```text
+full       = 500 unique cues + 25 duplicates
+loop_probe = 96 unique cues + 8 duplicates
+```
+
+Default profile is `full`. It remains the only profile that can be cited as the representative runtime calibration workload from §11.
+
+`loop_probe` is an engineering instrument for consequence-loop development. It still crosses the live EventBridge/SQS wire, covers all eight cue types, includes all four adversarial classes, and exercises duplicate handling, but it is not a replacement for the 500-cue calibration artifact.
+
+The `loop_probe` unique cue counts are:
+
+| `cue_type` | count |
+|------------|------:|
+| `repetition` | 24 |
+| `scheduled_cue` | 16 |
+| `recall_directive` | 12 |
+| `goal_impact` | 12 |
+| `prediction_error` | 10 |
+| `contradiction_pressure` | 8 |
+| `safety_anomaly` | 8 |
+| `sensor_disagreement` | 6 |
+
+The `loop_probe` adversarial matrix is:
+
+| `cue_type` | adversarial class | count |
+|------------|-------------------|------:|
+| `safety_anomaly` | `spoofed_urgency` | 4 |
+| `scheduled_cue` | `spoofed_urgency` | 4 |
+| `sensor_disagreement` | `spoofed_urgency` | 2 |
+| `sensor_disagreement` | `spoofed_sensory_confidence` | 2 |
+| `safety_anomaly` | `spoofed_sensory_confidence` | 2 |
+| `prediction_error` | `spoofed_sensory_confidence` | 2 |
+| `contradiction_pressure` | `high_trust_conflict_pressure` | 4 |
+| `goal_impact` | `high_trust_conflict_pressure` | 2 |
+| `recall_directive` | `high_trust_conflict_pressure` | 2 |
+| `repetition` | `event_flood_pressure` | 8 |
+
+Run Summaries must record `workload_profile`. Consequence bindings must also record the current binding profile and the source profile, if a prior summary is read. A prior adversarial matrix becomes a forbidden pattern only when the prior profile matches the current profile. A full-profile matrix must not become a false forbidden pattern for a loop-probe run merely because the profile changed.
+
+Two-run verification:
+
+```text
+run N:
+  execute im_w and keep its Run Summary URI
+
+run N+1:
+  set IMPLICIT_CALIBRATION_PRIOR_SUMMARY_URI to run N's summary URI
+  execute im_w again
+  assert consequence_binding_summary.source = prior_summary
+  assert consequence_binding_summary.source_run_id = run N's run_id
+  assert consequence_binding_summary.applied = true
+```
+
+If run N carried a failed adversarial matrix, run N+1 must also show:
+
+```text
+consequence_binding_summary.authority = failure_direct_prior_run
+consequence_binding_summary.forbidden_pattern_count > 0
+```

@@ -32,7 +32,9 @@ This module implements governed implicit memory control: automatic trigger evalu
 - `provenance_resolver.py` — resolves `confidence_in_provenance_chain` from emitted provenance signals (per `specs/PROVENANCE_SIGNAL_WRITER.md`)
 - `lineage_events.py` — helpers for constructing implicit-side lineage events
 - `scheduler.py` — scheduled cue handling
-- `replay.py` — lineage replay summary reconstruction
+- `replay.py` — lineage replay summary reconstruction (`rebuild_from_lineage`, `ReplayCueProvider`)
+- `cue_ingest.py` — control-plane cue ingestion (`CueIngestionConsumer`, capture-before-act, lineage-backed dedup; per `specs/CONTROL_PLANE_INGEST.md`)
+- `run_cue_ingest.py` — the SQS consumer command that drains `memory-lab.fifo` into `CueIngestionConsumer`
 - `run_loop.py` — runnable loop entrypoint
 - `settings.py` — implicit-loop runtime settings
 
@@ -52,5 +54,10 @@ From repo root (using `uv`):
 
 ## Related specs
 
-- `specs/IMPLICIT_MEMORY_SPEC.md`
-- `specs/IMPLICIT_MEMORY_TEST_SPEC.md`
+- `specs/IMPLICIT_MEMORY_SPEC.md` — governed/reflex contract, trigger/admission/eligibility/contamination logic.
+- `specs/IMPLICIT_MEMORY_TEST_SPEC.md` — the `im_*` suite test surface.
+- `specs/CONTROL_PLANE_INGEST.md` — EventBridge → SQS → consumer contract; what `cue_ingest.py` and `run_cue_ingest.py` implement.
+- `specs/EPISTEMIC_TRIANGLE.md` — `record_kind` / `assertion_kind` envelope and three-axis signal taxonomy that decisions emitted from this module must carry.
+- `specs/THREE_AXIS_UNCERTAINTY.md` — axis-aware gating direction; relevant to `eligibility.py` and the policy-mutation paths.
+- `specs/PROVENANCE_SIGNAL_WRITER.md` — provenance signal production consumed by `provenance_resolver.py`.
+- `specs/CONSEQUENCE_LOOPS.md` — run-to-run learning. The first two summary-to-summary bindings live in `src/experiments/implicit/im_w_runtime_calibration.py`, but the procedural-memory framing belongs to this module's territory.

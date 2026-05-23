@@ -10,3 +10,8 @@ dependencies = [
   "astropy>=6.1.0",
 ]
 
+[dependency-groups]
+dev = [
+    "ruff>=0.15.14",
+]
+

@@ -99,6 +99,7 @@ stack/.cdk.staging/
 
 # Local research artifacts
 artifacts/
+.threads/
 
 # Node.js / TypeScript
 node_modules/
